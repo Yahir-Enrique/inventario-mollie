@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario de Ingeniería Mollie Aspen</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Mollie Inventario">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/9322/9322127.png">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <!-- ========== LOGIN / REGISTRO ========== -->
+    <div class="contenedor-login" id="seccionLogin">
+        <h2 id="loginTitulo">Iniciar Sesión</h2>
+        <p class="sub" id="loginSubtitulo">Ingresa tus credenciales para acceder al inventario</p>
+
+        <form id="formAutenticacion">
+            <div class="form-login-grupo">
+                <div class="campo">
+                    <label>Usuario</label>
+                    <input type="text" id="loginUsuario" placeholder="Ej: admin_mollie" required>
+                </div>
+                <div class="campo">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                </div>
+            </div>
+            <button type="submit" id="btnLoginAccion" class="btn-accion" style="width: 100%;">Ingresar al Sistema</button>
+        </form>
+
+    </div>
+
+    <!-- ========== INVENTARIO PRINCIPAL ========== -->
+    <div class="contenedor" id="seccionInventario">
+        <div class="encabezado-app">
+            <img class="icono-app" src="https://cdn-icons-png.flaticon.com/512/9322/9322127.png" alt="Icono Mollie">
+            <div class="titulo-app">
+                <h1>Inventario de Ingeniería Mollie Aspen</h1>
+                <p>Módulo de Control de Materiales Privado y Autónomo</p>
+                <div class="rol-usuario">Rol: <strong id="rolActual">-</strong></div>
+            </div>
+            <button class="btn-accion" id="toggleTheme" style="margin-left:10px;">🌙</button>
+            <button class="btn-cerrar-sesion" id="btnCerrarSesion">Cerrar Sesión 🔓</button>
+        </div>
+
+        <div class="seccion-gestion-superior">
+
+            <!-- Panel: Formulario de Inventario -->
+            <div class="panel-formulario">
+                <h3 id="tituloFormulario">+ Añadir Elemento al Inventario</h3>
+                <form id="formularioInventario">
+                    <input type="hidden" id="editIndex" value="-1">
+                    <div class="grid-campos">
+                        <div class="campo">
+                            <label>Código de Ítem</label>
+                            <input type="text" id="insCodigo" placeholder="Ej: ENG-205" required>
+                        </div>
+                        <div class="campo">
+                            <label>Categoría</label>
+                            <select id="insCategoria" required></select>
+                        </div>
+                        <div class="campo">
+                            <label>Marca del Producto</label>
+                            <input type="text" id="insMarca" placeholder="Ej: Fluke" required>
+                        </div>
+                        <div class="campo">
+                            <label>Detalle del Producto</label>
+                            <input type="text" id="insDetalle" placeholder="Ej: Multímetro Pro" required>
+                        </div>
+                        <div class="campo">
+                            <label>Imagen del Producto</label>
+                            <div class="zona-pegar-imagen" id="cajaPegarImagen" tabindex="0">
+                                <span id="textoPegar">Haga clic aquí y pulse Ctrl+V para pegar</span>
+                                <img src="" id="previsualizacionPegada" class="miniatura-pegar" alt="Miniatura">
+                            </div>
+                        </div>
+                        <div class="campo">
+                            <label>Etiqueta</label>
+                            <input type="text" id="insEtiqueta" placeholder="Ej: Calibrado" required>
+                        </div>
+                        <div class="campo">
+                            <label>Anexo</label>
+                            <input type="text" id="insAnexo" placeholder="Manual.pdf" value="Anexo.pdf">
+                        </div>
+                        <div class="campo">
+                            <label>Contenido</label>
+                            <input type="text" id="insContenido" placeholder="Ej: Sondas, Caja" required>
+                        </div>
+                        <div class="campo">
+                            <label>Unidad de Medida</label>
+                            <input type="text" id="insMedida" placeholder="Ej: Unidad" required>
+                        </div>
+                        <div class="campo">
+                            <label>Cantidad en Stock</label>
+                            <input type="number" id="insStock" min="0" placeholder="0" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-accion" id="btnSubmitForm">Agregar a la Lista Temporal</button>
+                </form>
+            </div>
+
+            <!-- Panel: Categorías + Usuarios -->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+
+                <!-- Gestor de Categorías -->
+                <div class="panel-formulario">
+                    <h3>🛠️ Gestor de Categorías</h3>
+                    <div class="campo" style="margin-bottom: 10px;">
+                        <input type="text" id="nuevaCategoriaInput" placeholder="Nueva Categoría...">
+                    </div>
+                    <button type="button" id="btnAgregarCategoria" class="btn-accion" style="width: 100%; padding: 7px;">+ Añadir Categoría</button>
+                    <div class="lista-categorias-admin" id="contenedorListaCategorias"></div>
+                </div>
+
+                <!-- Gestión de Usuarios (solo visible para admin) -->
+                <div class="panel-formulario" id="panelUsuarios">
+                    <h3>👥 Gestión de Usuarios</h3>
+                    <div class="grid-campos">
+                        <div class="campo">
+                            <label>Usuario</label>
+                            <input type="text" id="newUsername" placeholder="Ej: supervisor">
+                        </div>
+                        <div class="campo">
+                            <label>Contraseña</label>
+                            <input type="password" id="newPassword" placeholder="••••••••">
+                        </div>
+                        <div class="campo">
+                            <label>Rol</label>
+                            <select id="newRole">
+                                <option value="cajero">Cajero</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="btnAgregarUsuario" class="btn-accion" style="width:100%;margin-top:10px;">+ Crear Usuario</button>
+                    <div class="lista-categorias-admin" id="listaUsuarios" style="margin-top:10px;"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="barra-herramientas">
+            <div class="buscador-caja">
+                <input type="text" id="cajaBusqueda" placeholder="Filtrar por código, marca, categoría, detalles...">
+            </div>
+            <div class="herramientas-derecha">
+                <div>
+                    Productos en lista: <strong id="contadorProductos">0</strong>
+                </div>
+                <button type="button" class="btn-descargar-pdf" id="btnDescargarPDF">
+                    📄 Descargar PDF
+                </button>
+                <button type="button" class="btn-guardar-cambios" id="btnGuardarBaseDatos">
+                    💾 Guardar en Base de Datos
+                </button>
+            </div>
+        </div>
+
+        <div class="tabla-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Categoría</th>
+                        <th>Marca</th>
+                        <th>Detalle del Producto</th>
+                        <th>Etiqueta</th>
+                        <th>Anexo</th>
+                        <th>Contenido</th>
+                        <th>Medida</th>
+                        <th style="text-align: center;">Stock</th>
+                        <th>Estado</th>
+                        <th>Operación</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCuerpo"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========== MODAL DETALLE ========== -->
+    <div class="modal-background" id="miModal">
+        <div class="modal-ventana">
+            <span class="modal-cerrar" id="cerrarModal">✕</span>
+            <div class="modal-titulo" id="modalTituloProducto">Nombre del Producto</div>
+            <div class="modal-contenido-flex">
+                <img src="" alt="Este producto no cuenta con imagen" class="modal-imagen" id="modalImgProducto">
+                <div class="modal-texto-detalle" id="modalTextoDetalle">Descripción extendida...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="index.js" defer></script>
+</body>
+</html>
