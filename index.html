@@ -3,161 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario de Ingeniería Mollie Aspen</title>
+    <title>Mollie Aspen - Control de Inventario</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Mollie Inventario">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/9322/9322127.png">
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
-    <!-- ========== LOGIN / REGISTRO ========== -->
+    <!-- ========== LOGIN ========== -->
     <div class="contenedor-login" id="seccionLogin">
-        <h2 id="loginTitulo">Iniciar Sesión</h2>
-        <p class="sub" id="loginSubtitulo">Ingresa tus credenciales para acceder al inventario</p>
+        <div class="login-header">
+            <img class="icono-login" src="https://cdn-icons-png.flaticon.com/512/9322/9322127.png" alt="Logo Mollie">
+            <h2 id="loginTitulo">Iniciar Sesión</h2>
+            <p class="sub" id="loginSubtitulo">Panel de Control de Inventario Mollie Aspen</p>
+        </div>
 
         <form id="formAutenticacion">
             <div class="form-login-grupo">
                 <div class="campo">
-                    <label>Usuario</label>
-                    <input type="text" id="loginUsuario" placeholder="Ej: admin_mollie" required>
+                    <label for="loginUsuario">Usuario</label>
+                    <input type="text" id="loginUsuario" placeholder="Ej: adminjefe" required autocomplete="username">
                 </div>
                 <div class="campo">
-                    <label>Contraseña</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    <label for="loginPassword">Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
                 </div>
             </div>
-            <button type="submit" id="btnLoginAccion" class="btn-accion" style="width: 100%;">Ingresar al Sistema</button>
+            <button type="submit" id="btnLoginAccion" class="btn-accion">Ingresar al Sistema</button>
         </form>
-
     </div>
 
     <!-- ========== INVENTARIO PRINCIPAL ========== -->
     <div class="contenedor" id="seccionInventario">
-        <div class="encabezado-app">
-            <img class="icono-app" src="https://cdn-icons-png.flaticon.com/512/9322/9322127.png" alt="Icono Mollie">
-            <div class="titulo-app">
-                <h1>Inventario de Ingeniería Mollie Aspen</h1>
-                <p>Módulo de Control de Materiales Privado y Autónomo</p>
-                <div class="rol-usuario">Rol: <strong id="rolActual">-</strong></div>
+        
+        <!-- Header -->
+        <header class="encabezado-app">
+            <div class="info-logo-seccion">
+                <img class="icono-app" src="https://cdn-icons-png.flaticon.com/512/9322/9322127.png" alt="Icono Mollie">
+                <div class="titulo-app">
+                    <h1>Mollie Aspen</h1>
+                    <p>Módulo de Control de Materiales e Inventario de Ingeniería</p>
+                </div>
             </div>
-            <button class="btn-accion" id="toggleTheme" style="margin-left:10px;">🌙</button>
-            <button class="btn-cerrar-sesion" id="btnCerrarSesion">Cerrar Sesión 🔓</button>
-        </div>
+            <div class="herramientas-sesion">
+                <div class="rol-usuario">Rol: <span id="rolActual" class="badge-rol">-</span></div>
+                <button class="btn-theme" id="toggleTheme" title="Cambiar Tema">🌙</button>
+                <button class="btn-cerrar-sesion" id="btnCerrarSesion">Salir 🚪</button>
+            </div>
+        </header>
 
+        <!-- Top Panel (Gestion Forms) -->
         <div class="seccion-gestion-superior">
 
             <!-- Panel: Formulario de Inventario -->
-            <div class="panel-formulario">
+            <section class="panel-formulario">
                 <h3 id="tituloFormulario">+ Añadir Elemento al Inventario</h3>
                 <form id="formularioInventario">
                     <input type="hidden" id="editIndex" value="-1">
                     <div class="grid-campos">
                         <div class="campo">
-                            <label>Código de Ítem</label>
+                            <label for="insCodigo">Código de Ítem</label>
                             <input type="text" id="insCodigo" placeholder="Ej: ENG-205" required>
                         </div>
                         <div class="campo">
-                            <label>Categoría</label>
+                            <label for="insCategoria">Categoría</label>
                             <select id="insCategoria" required></select>
                         </div>
                         <div class="campo">
-                            <label>Marca del Producto</label>
+                            <label for="insMarca">Marca del Producto</label>
                             <input type="text" id="insMarca" placeholder="Ej: Fluke" required>
                         </div>
                         <div class="campo">
-                            <label>Detalle del Producto</label>
+                            <label for="insDetalle">Detalle del Producto</label>
                             <input type="text" id="insDetalle" placeholder="Ej: Multímetro Pro" required>
                         </div>
                         <div class="campo">
                             <label>Imagen del Producto</label>
                             <div class="zona-pegar-imagen" id="cajaPegarImagen" tabindex="0">
-                                <span id="textoPegar">Haga clic aquí y pulse Ctrl+V para pegar</span>
+                                <span id="textoPegar">Haz clic y presiona Ctrl+V para pegar imagen</span>
                                 <img src="" id="previsualizacionPegada" class="miniatura-pegar" alt="Miniatura">
                             </div>
                         </div>
                         <div class="campo">
-                            <label>Etiqueta</label>
+                            <label for="insEtiqueta">Etiqueta</label>
                             <input type="text" id="insEtiqueta" placeholder="Ej: Calibrado" required>
                         </div>
                         <div class="campo">
-                            <label>Anexo</label>
+                            <label for="insAnexo">Anexo</label>
                             <input type="text" id="insAnexo" placeholder="Manual.pdf" value="Anexo.pdf">
                         </div>
                         <div class="campo">
-                            <label>Contenido</label>
+                            <label for="insContenido">Contenido</label>
                             <input type="text" id="insContenido" placeholder="Ej: Sondas, Caja" required>
                         </div>
                         <div class="campo">
-                            <label>Unidad de Medida</label>
+                            <label for="insMedida">Unidad de Medida</label>
                             <input type="text" id="insMedida" placeholder="Ej: Unidad" required>
                         </div>
                         <div class="campo">
-                            <label>Cantidad en Stock</label>
+                            <label for="insStock">Cantidad en Stock</label>
                             <input type="number" id="insStock" min="0" placeholder="0" required>
                         </div>
                     </div>
                     <button type="submit" class="btn-accion" id="btnSubmitForm">Agregar a la Lista Temporal</button>
                 </form>
-            </div>
+            </section>
 
             <!-- Panel: Categorías + Usuarios -->
-            <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="seccion-admin-controles">
 
                 <!-- Gestor de Categorías -->
-                <div class="panel-formulario">
-                    <h3>🛠️ Gestor de Categorías</h3>
-                    <div class="campo" style="margin-bottom: 10px;">
+                <section class="panel-formulario">
+                    <h3>🛠️ Categorías</h3>
+                    <div class="campo-fila-add">
                         <input type="text" id="nuevaCategoriaInput" placeholder="Nueva Categoría...">
+                        <button type="button" id="btnAgregarCategoria" class="btn-accion-icono">+</button>
                     </div>
-                    <button type="button" id="btnAgregarCategoria" class="btn-accion" style="width: 100%; padding: 7px;">+ Añadir Categoría</button>
                     <div class="lista-categorias-admin" id="contenedorListaCategorias"></div>
-                </div>
+                </section>
 
                 <!-- Gestión de Usuarios (solo visible para admin) -->
-                <div class="panel-formulario" id="panelUsuarios">
-                    <h3>👥 Gestión de Usuarios</h3>
-                    <div class="grid-campos">
-                        <div class="campo">
-                            <label>Usuario</label>
-                            <input type="text" id="newUsername" placeholder="Ej: supervisor">
-                        </div>
-                        <div class="campo">
-                            <label>Contraseña</label>
-                            <input type="password" id="newPassword" placeholder="••••••••">
-                        </div>
-                        <div class="campo">
-                            <label>Rol</label>
-                            <select id="newRole">
-                                <option value="cajero">Cajero</option>
-                                <option value="admin">Administrador</option>
-                            </select>
-                        </div>
+                <section class="panel-formulario" id="panelUsuarios">
+                    <h3>👥 Usuarios</h3>
+                    <div class="campo-admin-user">
+                        <input type="text" id="newUsername" placeholder="Usuario...">
+                        <input type="password" id="newPassword" placeholder="Contraseña...">
+                        <select id="newRole">
+                            <option value="cajero">Cajero</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button type="button" id="btnAgregarUsuario" class="btn-accion" style="width:100%;">Crear Usuario</button>
                     </div>
-                    <button type="button" id="btnAgregarUsuario" class="btn-accion" style="width:100%;margin-top:10px;">+ Crear Usuario</button>
-                    <div class="lista-categorias-admin" id="listaUsuarios" style="margin-top:10px;"></div>
-                </div>
+                    <div class="lista-categorias-admin" id="listaUsuarios"></div>
+                </section>
 
             </div>
         </div>
 
+        <!-- Toolbar (Search + Filters + Stats) -->
         <div class="barra-herramientas">
             <div class="buscador-caja">
-                <input type="text" id="cajaBusqueda" placeholder="Filtrar por código, marca, categoría, detalles...">
+                <input type="text" id="cajaBusqueda" placeholder="Buscar por código, marca, categoría, detalles...">
             </div>
             <div class="herramientas-derecha">
-                <div>
-                    Productos en lista: <strong id="contadorProductos">0</strong>
+                <div class="contador-badges">
+                    Total Productos: <strong id="contadorProductos">0</strong>
                 </div>
                 <button type="button" class="btn-descargar-pdf" id="btnDescargarPDF">
-                    📄 Descargar PDF
+                    📄 Exportar PDF
                 </button>
                 <button type="button" class="btn-guardar-cambios" id="btnGuardarBaseDatos">
-                    💾 Guardar en Base de Datos
+                    🔄 Sincronizar
                 </button>
             </div>
         </div>
 
+        <!-- Table View -->
         <div class="tabla-scroll">
             <table>
                 <thead>
@@ -165,14 +173,14 @@
                         <th>Código</th>
                         <th>Categoría</th>
                         <th>Marca</th>
-                        <th>Detalle del Producto</th>
+                        <th>Detalle</th>
                         <th>Etiqueta</th>
                         <th>Anexo</th>
                         <th>Contenido</th>
                         <th>Medida</th>
                         <th style="text-align: center;">Stock</th>
                         <th>Estado</th>
-                        <th>Operación</th>
+                        <th>Operaciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaCuerpo"></tbody>
@@ -184,15 +192,16 @@
     <div class="modal-background" id="miModal">
         <div class="modal-ventana">
             <span class="modal-cerrar" id="cerrarModal">✕</span>
-            <div class="modal-titulo" id="modalTituloProducto">Nombre del Producto</div>
+            <div class="modal-titulo" id="modalTituloProducto">Ficha Técnica</div>
             <div class="modal-contenido-flex">
-                <img src="" alt="Este producto no cuenta con imagen" class="modal-imagen" id="modalImgProducto">
-                <div class="modal-texto-detalle" id="modalTextoDetalle">Descripción extendida...</div>
+                <img src="" alt="Sin imagen disponible" class="modal-imagen" id="modalImgProducto">
+                <div class="modal-texto-detalle" id="modalTextoDetalle"></div>
             </div>
         </div>
     </div>
 
-    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script src="index.js" defer></script>
 </body>

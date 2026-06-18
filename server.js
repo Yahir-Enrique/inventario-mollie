@@ -1,102 +1,255 @@
 const express = require('express');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'mollie-secret-2026';
-const DATA_DIR = process.env.DATA_DIR || __dirname;
-const DB_FILE = path.join(DATA_DIR, 'mollie.sqlite');
+const _rawSecret = process.env.JWT_SECRET;
+if (!_rawSecret) {
+  console.warn('⚠️  JWT_SECRET no configurado. Define esta variable de entorno en producción.');
+}
+const JWT_SECRET = _rawSecret || ('dev-only-' + Math.random().toString(36).slice(2));
 
-const db = new sqlite3.Database(DB_FILE, (err) => {
-  if (err) {
-    console.error('Error abriendo la base de datos:', err.message);
-    process.exit(1);
+// HÍBRIDO: Usar PostgreSQL en Vercel/Producción si DATABASE_URL está presente,
+// de lo contrario usar SQLite3 para desarrollo local
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+const isPostgres = !!DATABASE_URL;
+
+let dbInstance;
+const db = {
+  serialize(callback) {
+    if (isPostgres) {
+      callback();
+    } else {
+      dbInstance.serialize(callback);
+    }
+  },
+  run(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    params = params || [];
+    
+    if (isPostgres) {
+      let paramIndex = 1;
+      let pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+      pgSql = pgSql.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
+      
+      if (pgSql.trim().toUpperCase().startsWith('INSERT ')) {
+        pgSql += ' RETURNING id';
+      }
+      
+      dbInstance.query(pgSql, params, (err, res) => {
+        if (callback) {
+          if (err) return callback(err);
+          const context = {
+            changes: res.rowCount,
+            lastID: res.rows && res.rows[0] ? res.rows[0].id : null
+          };
+          callback.call(context, null);
+        }
+      });
+    } else {
+      dbInstance.run(sql, params, function(err) {
+        if (callback) {
+          callback.call(this, err);
+        }
+      });
+    }
+  },
+  get(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    params = params || [];
+
+    if (isPostgres) {
+      let paramIndex = 1;
+      const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+      dbInstance.query(pgSql, params, (err, res) => {
+        if (callback) {
+          if (err) return callback(err);
+          callback(null, res.rows[0] || null);
+        }
+      });
+    } else {
+      dbInstance.get(sql, params, callback);
+    }
+  },
+  all(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    params = params || [];
+
+    if (isPostgres) {
+      let paramIndex = 1;
+      const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+      dbInstance.query(pgSql, params, (err, res) => {
+        if (callback) {
+          if (err) return callback(err);
+          callback(null, res.rows || []);
+        }
+      });
+    } else {
+      dbInstance.all(sql, params, callback);
+    }
+  },
+  prepare(sql, callback) {
+    if (isPostgres) {
+      return {
+        run(val, cb) {
+          let paramIndex = 1;
+          const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+          dbInstance.query(pgSql, [val], cb);
+        },
+        finalize(cb) {
+          if (cb) cb();
+        }
+      };
+    } else {
+      return dbInstance.prepare(sql, callback);
+    }
   }
-});
+};
+
+if (isPostgres) {
+  const { Pool } = require('pg');
+  console.log('🔌 Conectando a base de datos PostgreSQL (Nube/Vercel)...');
+  dbInstance = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+  dbInstance.on('error', (err) => {
+    console.error('Error inesperado en cliente PostgreSQL:', err);
+  });
+} else {
+  const sqlite3 = require('sqlite3').verbose();
+  const DATA_DIR = process.env.DATA_DIR || __dirname;
+  const DB_FILE = path.join(DATA_DIR, 'mollie.sqlite');
+  console.log(`🔌 Conectando a base de datos SQLite local: ${DB_FILE}`);
+  dbInstance = new sqlite3.Database(DB_FILE, (err) => {
+    if (err) {
+      console.error('Error abriendo la base de datos SQLite:', err.message);
+      process.exit(1);
+    }
+  });
+}
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname)));
 
+let dbReady;
+
+function runAsync(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) return reject(err);
+      resolve(this);
+    });
+  });
+}
+
+function getAsync(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) return reject(err);
+      resolve(row);
+    });
+  });
+}
+
+app.use('/api', async (req, res, next) => {
+  try {
+    await dbReady;
+    next();
+  } catch (err) {
+    console.error('Base de datos no disponible:', err.message);
+    res.status(500).json({ error: 'Base de datos no disponible' });
+  }
+});
+
 // ============================================================
 // Database Initialization
 // ============================================================
-function initDatabase() {
-  db.serialize(() => {
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL
-      )
-    `);
+async function initDatabase() {
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL
+    )
+  `);
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL
-      )
-    `);
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL
+    )
+  `);
 
-    db.run(`
-      CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        codigo TEXT,
-        categoria TEXT,
-        marca TEXT,
-        detalle TEXT,
-        imagen TEXT,
-        etiqueta TEXT,
-        anexo TEXT,
-        contenido TEXT,
-        medida TEXT,
-        stock INTEGER
-      )
-    `);
+  await runAsync(`
+    CREATE TABLE IF NOT EXISTS inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo TEXT,
+      categoria TEXT,
+      marca TEXT,
+      detalle TEXT,
+      imagen TEXT,
+      etiqueta TEXT,
+      anexo TEXT,
+      contenido TEXT,
+      medida TEXT,
+      stock INTEGER
+    )
+  `);
 
-    // Insert default categories if table is empty
-    db.get('SELECT COUNT(*) AS count FROM categories', (err, row) => {
-      if (err) {
-        console.error('Error consultando categorías:', err.message);
-        return;
-      }
-      if (row.count === 0) {
-        const defaultCategories = [
-          'Herramientas',
-          'Dispositivos Eléctricos',
-          'Sistemas de Medición',
-          'Repuestos'
-        ];
-        const stmt = db.prepare('INSERT INTO categories (name) VALUES (?)');
-        defaultCategories.forEach((name) => stmt.run(name));
-        stmt.finalize();
-      }
-    });
+  // Insert default categories if table is empty.
+  const categoriesRow = await getAsync('SELECT COUNT(*) AS count FROM categories');
+  if (Number(categoriesRow.count) === 0) {
+    const defaultCategories = [
+      'Herramientas',
+      'Dispositivos Eléctricos',
+      'Sistemas de Medición',
+      'Repuestos'
+    ];
+    for (const name of defaultCategories) {
+      await runAsync('INSERT INTO categories (name) VALUES (?)', [name]);
+    }
+  }
 
-    // Create a default admin user if no users exist
-    db.get('SELECT COUNT(*) AS count FROM users', async (err, row) => {
-      if (err) {
-        console.error('Error consultando usuarios:', err.message);
-        return;
-      }
-      if (row.count === 0) {
-        try {
-          const bycarlosHash = await bcrypt.hash('ByCarlos#2026!', 10);
-          const adminjefeHash = await bcrypt.hash('AdminJefe#2026!', 10);
-          db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['bycarlos', bycarlosHash, 'admin']);
-          db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['adminjefe', adminjefeHash, 'admin']);
-          console.log('✅ Usuarios creados:');
-          console.log('   bycarlos  / ByCarlos#2026!  (Administrador)');
-          console.log('   adminjefe / AdminJefe#2026! (Administrador)');
-        } catch (e) {
-          console.error('Error creando usuarios por defecto:', e.message);
-        }
-      }
-    });
-  });
+  // Create default admin users if no users exist.
+  const usersRow = await getAsync('SELECT COUNT(*) AS count FROM users');
+  if (Number(usersRow.count) === 0) {
+    const user1 = (process.env.ADMIN_USER1 || 'bycarlos').trim().toLowerCase();
+    const pass1 = process.env.ADMIN_PASS1 || null;
+    const user2 = (process.env.ADMIN_USER2 || 'adminjefe').trim().toLowerCase();
+    const pass2 = process.env.ADMIN_PASS2 || null;
+
+    const randomPass = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6).toUpperCase() + '!';
+    const finalPass1 = pass1 || randomPass();
+    const finalPass2 = pass2 || randomPass();
+
+    const hash1 = await bcrypt.hash(finalPass1, 10);
+    const hash2 = await bcrypt.hash(finalPass2, 10);
+    await runAsync('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [user1, hash1, 'admin']);
+    await runAsync('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [user2, hash2, 'admin']);
+
+    console.log('✅ Usuarios administradores creados:');
+    console.log(`   Usuario: ${user1} / Contraseña: ${finalPass1}`);
+    console.log(`   Usuario: ${user2} / Contraseña: ${finalPass2}`);
+    if (!pass1 || !pass2) {
+      console.log('⚠️  GUARDA estas contraseñas. No se mostrarán de nuevo.');
+      console.log('   Define ADMIN_PASS1 y ADMIN_PASS2 en tus variables de entorno para controlarlas.');
+    }
+  }
 }
 
 // ============================================================
@@ -228,7 +381,7 @@ app.post('/api/categories', authenticate, requireAdmin, (req, res) => {
   const normalizedName = name.trim();
   db.run('INSERT INTO categories (name) VALUES (?)', [normalizedName], function (err) {
     if (err) {
-      if (err.message.includes('UNIQUE')) {
+      if (err.code === '23505' || err.message.includes('UNIQUE')) {
         return res.status(409).json({ error: 'La categoría ya existe' });
       }
       return res.status(500).json({ error: 'Error guardando categoría' });
@@ -315,8 +468,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-initDatabase();
+dbReady = initDatabase();
 
-app.listen(PORT, () => {
-  console.log(`Servidor activo en http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Servidor activo en http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
