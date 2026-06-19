@@ -131,15 +131,19 @@
 
                 <!-- Gestión de Usuarios (solo visible para admin) -->
                 <section class="panel-formulario" id="panelUsuarios">
-                    <h3>👥 Usuarios</h3>
+                    <h3 id="tituloUsuarios">👥 Usuarios</h3>
                     <div class="campo-admin-user">
+                        <input type="hidden" id="editUserId" value="-1">
                         <input type="text" id="newUsername" placeholder="Usuario...">
                         <input type="password" id="newPassword" placeholder="Contraseña...">
                         <select id="newRole">
                             <option value="cajero">Cajero</option>
                             <option value="admin">Admin</option>
                         </select>
-                        <button type="button" id="btnAgregarUsuario" class="btn-accion" style="width:100%;">Crear Usuario</button>
+                        <div class="acciones-usuario-form">
+                            <button type="button" id="btnAgregarUsuario" class="btn-accion">Crear Usuario</button>
+                            <button type="button" id="btnCancelarUsuario" class="btn-secundario" hidden>Cancelar</button>
+                        </div>
                     </div>
                     <div class="lista-categorias-admin" id="listaUsuarios"></div>
                 </section>

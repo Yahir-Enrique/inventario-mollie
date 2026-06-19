@@ -360,6 +360,9 @@ app.post('/api/users', authenticate, requireAdmin, async (req, res) => {
   if (!username || !password || !role) {
     return res.status(400).json({ error: 'Usuario, contraseña y rol son requeridos' });
   }
+  if (!['admin', 'cajero'].includes(role)) {
+    return res.status(400).json({ error: 'Rol inválido' });
+  }
   const normalizedUser = username.trim().toLowerCase();
   db.get('SELECT * FROM users WHERE username = ?', [normalizedUser], async (err, existing) => {
     if (err) return res.status(500).json({ error: 'Error en la base de datos' });
@@ -373,6 +376,59 @@ app.post('/api/users', authenticate, requireAdmin, async (req, res) => {
     } catch (e) {
       res.status(500).json({ error: 'Error procesando la solicitud' });
     }
+  });
+});
+
+app.put('/api/users/:id', authenticate, requireAdmin, async (req, res) => {
+  const userId = Number(req.params.id);
+  const { username, password, role } = req.body;
+  if (!userId || !username || !role) {
+    return res.status(400).json({ error: 'Usuario y rol son requeridos' });
+  }
+  if (!['admin', 'cajero'].includes(role)) {
+    return res.status(400).json({ error: 'Rol inválido' });
+  }
+  if (userId === req.user.id && role !== req.user.role) {
+    return res.status(400).json({ error: 'No puedes cambiar tu propio rol' });
+  }
+
+  const normalizedUser = username.trim().toLowerCase();
+  db.get('SELECT * FROM users WHERE id = ?', [userId], async (err, currentUser) => {
+    if (err) return res.status(500).json({ error: 'Error en la base de datos' });
+    if (!currentUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    db.get('SELECT id FROM users WHERE username = ? AND id <> ?', [normalizedUser, userId], async (err, existing) => {
+      if (err) return res.status(500).json({ error: 'Error en la base de datos' });
+      if (existing) return res.status(409).json({ error: 'El usuario ya existe' });
+
+      try {
+        const finish = (err) => {
+          if (err) return res.status(500).json({ error: 'Error actualizando usuario' });
+          const updatedUser = { id: userId, username: normalizedUser, role };
+          const payload = userId === req.user.id
+            ? { ...updatedUser, token: generateToken(updatedUser) }
+            : updatedUser;
+          res.json(payload);
+        };
+
+        if (password) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          db.run(
+            'UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?',
+            [normalizedUser, hashedPassword, role, userId],
+            finish
+          );
+        } else {
+          db.run(
+            'UPDATE users SET username = ?, role = ? WHERE id = ?',
+            [normalizedUser, role, userId],
+            finish
+          );
+        }
+      } catch (e) {
+        res.status(500).json({ error: 'Error procesando la solicitud' });
+      }
+    });
   });
 });
 

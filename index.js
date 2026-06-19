@@ -64,10 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTextoDetalle = document.getElementById('modalTextoDetalle');
 
     const panelUsuarios = document.getElementById('panelUsuarios');
+    const tituloUsuarios = document.getElementById('tituloUsuarios');
+    const editUserId = document.getElementById('editUserId');
     const newUsername = document.getElementById('newUsername');
     const newPassword = document.getElementById('newPassword');
     const newRole = document.getElementById('newRole');
     const btnAgregarUsuario = document.getElementById('btnAgregarUsuario');
+    const btnCancelarUsuario = document.getElementById('btnCancelarUsuario');
     const listaUsuarios = document.getElementById('listaUsuarios');
     const toastContainer = document.getElementById('toastContainer');
 
@@ -256,15 +259,25 @@ document.addEventListener('DOMContentLoaded', () => {
         usuarios.forEach(u => {
             const item = document.createElement('div');
             item.className = 'item-categoria-admin';
+            item.dataset.id = u.id;
+            item.dataset.username = u.username;
+            item.dataset.role = u.role;
             const deleteBtn = u.username === usuarioActual
                 ? ''
                 : `<button type="button" class="btn-mini-eliminar btn-eliminar-usuario" data-id="${u.id}">✕</button>`;
-            item.innerHTML = `<span><strong>${u.username}</strong> (${u.role})</span>${deleteBtn}`;
+            item.innerHTML = `
+                <span><strong>${u.username}</strong> (${u.role})</span>
+                <div class="usuario-acciones">
+                    <button type="button" class="btn-mini-editar btn-editar-usuario" data-id="${u.id}">Editar</button>
+                    ${deleteBtn}
+                </div>
+            `;
             listaUsuarios.appendChild(item);
         });
     }
 
     function actualizarInterfazCategorias() {
+        const categoriaSeleccionada = selectCategoria.value;
         selectCategoria.innerHTML = '<option value="">-- Seleccionar --</option>';
         [...categorias]
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -274,6 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.textContent = cat.name;
                 selectCategoria.appendChild(opt);
             });
+        if (categoriaSeleccionada && [...selectCategoria.options].some(opt => opt.value === categoriaSeleccionada)) {
+            selectCategoria.value = categoriaSeleccionada;
+        }
         contenedorListaCategorias.innerHTML = '';
         categorias.forEach(cat => {
             const item = document.createElement('div');
@@ -484,30 +500,75 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // User Management
     // ============================================================
+    function limpiarFormularioUsuario() {
+        editUserId.value = '-1';
+        newUsername.value = '';
+        newPassword.value = '';
+        newRole.value = 'cajero';
+        newPassword.placeholder = 'Contraseña...';
+        tituloUsuarios.textContent = '👥 Usuarios';
+        btnAgregarUsuario.textContent = 'Crear Usuario';
+        btnCancelarUsuario.hidden = true;
+    }
+
     if (btnAgregarUsuario) {
         btnAgregarUsuario.addEventListener('click', async () => {
+            const editingUserId = parseInt(editUserId.value, 10);
             const username = newUsername.value.trim().toLowerCase();
             const password = newPassword.value;
             const role = newRole.value;
-            if (!username || !password) {
+            if (!username || (!password && editingUserId <= 0)) {
                 mostrarError('Completa el usuario y la contraseña.');
                 return;
             }
             try {
-                await fetchApi('/api/users', { method: 'POST', body: { username, password, role } });
-                newUsername.value = '';
-                newPassword.value = '';
+                if (editingUserId > 0) {
+                    const data = await fetchApi(`/api/users/${editingUserId}`, {
+                        method: 'PUT',
+                        body: { username, password, role }
+                    });
+                    if (data.token) {
+                        setToken(data.token);
+                        usuarioActual = data.username;
+                        rolActual = data.role;
+                        actualizarVistaPorRol();
+                    }
+                    mostrarMensaje('Usuario actualizado.');
+                } else {
+                    await fetchApi('/api/users', { method: 'POST', body: { username, password, role } });
+                    mostrarMensaje('Usuario creado.');
+                }
+                limpiarFormularioUsuario();
                 await cargarUsuarios();
-                mostrarMensaje('Usuario creado.');
             } catch (error) { mostrarError(error.message); }
         });
     }
 
+    if (btnCancelarUsuario) {
+        btnCancelarUsuario.addEventListener('click', limpiarFormularioUsuario);
+    }
+
     if (listaUsuarios) {
         listaUsuarios.addEventListener('click', async (e) => {
-            const btn = e.target.closest('.btn-eliminar-usuario');
-            if (!btn) return;
-            const id = btn.getAttribute('data-id');
+            const btnEditar = e.target.closest('.btn-editar-usuario');
+            const btnEliminar = e.target.closest('.btn-eliminar-usuario');
+
+            if (btnEditar) {
+                const item = btnEditar.closest('.item-categoria-admin');
+                editUserId.value = item.dataset.id;
+                newUsername.value = item.dataset.username;
+                newPassword.value = '';
+                newPassword.placeholder = 'Nueva contraseña (opcional)';
+                newRole.value = item.dataset.role;
+                tituloUsuarios.textContent = `Editando: ${item.dataset.username}`;
+                btnAgregarUsuario.textContent = 'Guardar Cambios';
+                btnCancelarUsuario.hidden = false;
+                newUsername.focus();
+                return;
+            }
+
+            if (!btnEliminar) return;
+            const id = btnEliminar.getAttribute('data-id');
             mostrarConfirm('¿Eliminar este usuario permanentemente?', async () => {
                 try {
                     await fetchApi(`/api/users/${id}`, { method: 'DELETE' });
