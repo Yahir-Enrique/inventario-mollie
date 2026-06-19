@@ -12,9 +12,17 @@ if (!_rawSecret) {
 }
 const JWT_SECRET = _rawSecret || ('dev-only-' + Math.random().toString(36).slice(2));
 
-// HÍBRIDO: Usar PostgreSQL en Vercel/Producción si DATABASE_URL está presente,
-// de lo contrario usar SQLite3 para desarrollo local
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+// HÍBRIDO: Usar PostgreSQL en Vercel/Producción si Neon/Vercel inyecta una URL,
+// de lo contrario usar SQLite3 para desarrollo local.
+const postgresEnvCandidates = [
+  'DATABASE_URL',
+  'POSTGRES_URL',
+  'POSTGRES_URL_NON_POOLING',
+  'POSTGRES_PRISMA_URL',
+  'POSTGRES_URL_NO_SSL'
+];
+const activePostgresEnvName = postgresEnvCandidates.find((name) => process.env[name]);
+const DATABASE_URL = activePostgresEnvName ? process.env[activePostgresEnvName] : '';
 const isPostgres = !!DATABASE_URL;
 
 let dbInstance;
@@ -120,16 +128,21 @@ const db = {
 
 if (isPostgres) {
   const { Pool } = require('pg');
-  console.log('🔌 Conectando a base de datos PostgreSQL (Nube/Vercel)...');
+  console.log(`🔌 Conectando a base de datos PostgreSQL usando ${activePostgresEnvName}...`);
   dbInstance = new Pool({
     connectionString: DATABASE_URL,
-    ssl: {
+    ssl: activePostgresEnvName === 'POSTGRES_URL_NO_SSL' ? false : {
       rejectUnauthorized: false
     }
   });
   dbInstance.on('error', (err) => {
     console.error('Error inesperado en cliente PostgreSQL:', err);
   });
+} else if (process.env.VERCEL) {
+  console.error(
+    'No se encontró una URL de Postgres en Vercel. Variables revisadas: ' +
+    postgresEnvCandidates.join(', ')
+  );
 } else {
   const sqlite3 = require('sqlite3').verbose();
   const DATA_DIR = process.env.DATA_DIR || __dirname;
@@ -183,6 +196,12 @@ app.use('/api', async (req, res, next) => {
 // Database Initialization
 // ============================================================
 async function initDatabase() {
+  if (!isPostgres && process.env.VERCEL) {
+    throw new Error(
+      'No se encontró una URL de Postgres en Vercel. Revisa que Neon esté vinculado al proyecto y haz redeploy.'
+    );
+  }
+
   await runAsync(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
