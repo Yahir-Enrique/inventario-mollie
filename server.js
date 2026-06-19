@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const STATIC_DIR = __dirname;
 const _rawSecret = process.env.JWT_SECRET;
 if (!_rawSecret) {
   console.warn('⚠️  JWT_SECRET no configurado. Define esta variable de entorno en producción.');
@@ -143,7 +144,10 @@ if (isPostgres) {
 }
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(STATIC_DIR, {
+  index: false,
+  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0
+}));
 
 let dbReady;
 
@@ -465,7 +469,7 @@ app.delete('/api/inventory/:id', authenticate, requireAdmin, (req, res) => {
 // Fallback
 // ============================================================
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(STATIC_DIR, 'index.html'));
 });
 
 dbReady = initDatabase();
