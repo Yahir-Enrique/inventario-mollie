@@ -26,6 +26,28 @@ const DATABASE_URL = activePostgresEnvName ? process.env[activePostgresEnvName] 
 const isPostgres = !!DATABASE_URL;
 
 let dbInstance;
+function queryPostgres(sql, params, callback) {
+  const queryPromise = dbInstance(sql, params).then((result) => {
+    if (Array.isArray(result)) {
+      return {
+        rows: result,
+        rowCount: result.length
+      };
+    }
+    return {
+      rows: result.rows || [],
+      rowCount: typeof result.rowCount === 'number' ? result.rowCount : (result.rows || []).length
+    };
+  });
+
+  if (callback) {
+    queryPromise.then((res) => callback(null, res)).catch((err) => callback(err));
+    return;
+  }
+
+  return queryPromise;
+}
+
 const db = {
   serialize(callback) {
     if (isPostgres) {
@@ -50,7 +72,7 @@ const db = {
         pgSql += ' RETURNING id';
       }
       
-      dbInstance.query(pgSql, params, (err, res) => {
+      queryPostgres(pgSql, params, (err, res) => {
         if (callback) {
           if (err) return callback(err);
           const context = {
@@ -78,7 +100,7 @@ const db = {
     if (isPostgres) {
       let paramIndex = 1;
       const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
-      dbInstance.query(pgSql, params, (err, res) => {
+      queryPostgres(pgSql, params, (err, res) => {
         if (callback) {
           if (err) return callback(err);
           callback(null, res.rows[0] || null);
@@ -98,7 +120,7 @@ const db = {
     if (isPostgres) {
       let paramIndex = 1;
       const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
-      dbInstance.query(pgSql, params, (err, res) => {
+      queryPostgres(pgSql, params, (err, res) => {
         if (callback) {
           if (err) return callback(err);
           callback(null, res.rows || []);
@@ -114,7 +136,7 @@ const db = {
         run(val, cb) {
           let paramIndex = 1;
           const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
-          dbInstance.query(pgSql, [val], cb);
+          queryPostgres(pgSql, [val], cb);
         },
         finalize(cb) {
           if (cb) cb();
@@ -127,16 +149,10 @@ const db = {
 };
 
 if (isPostgres) {
-  const { Pool } = require('pg');
-  console.log(`🔌 Conectando a base de datos PostgreSQL usando ${activePostgresEnvName}...`);
-  dbInstance = new Pool({
-    connectionString: DATABASE_URL,
-    ssl: activePostgresEnvName === 'POSTGRES_URL_NO_SSL' ? false : {
-      rejectUnauthorized: false
-    }
-  });
-  dbInstance.on('error', (err) => {
-    console.error('Error inesperado en cliente PostgreSQL:', err);
+  const { neon } = require('@neondatabase/serverless');
+  console.log(`🔌 Conectando a base de datos PostgreSQL/Neon usando ${activePostgresEnvName}...`);
+  dbInstance = neon(DATABASE_URL, {
+    fullResults: true
   });
 } else if (process.env.VERCEL) {
   console.error(
@@ -189,6 +205,16 @@ app.use('/api', async (req, res, next) => {
   } catch (err) {
     console.error('Base de datos no disponible:', err.message);
     res.status(500).json({ error: 'Base de datos no disponible' });
+  }
+});
+
+app.get('/api/warmup', async (req, res) => {
+  try {
+    await getAsync('SELECT 1 AS ok');
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Warmup de base de datos falló:', err.message);
+    res.status(500).json({ ok: false, error: 'Base de datos no disponible' });
   }
 });
 

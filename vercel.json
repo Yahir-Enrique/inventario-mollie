@@ -39,5 +39,11 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/warmup",
+      "schedule": "*/5 * * * *"
+    }
   ]
 }
