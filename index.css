@@ -1245,6 +1245,17 @@ button, input, select, textarea {
     gap: 10px;
 }
 
+.exportar-grupo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.exportar-select {
+    min-width: 96px;
+    padding: 10px;
+}
+
 @media (max-width: 768px) {
     .filtros-inventario {
         grid-template-columns: 1fr;
@@ -1280,6 +1291,16 @@ button, input, select, textarea {
         font-size: 12px;
         white-space: normal;
         text-align: center;
+    }
+
+    .exportar-grupo {
+        display: grid;
+        grid-template-columns: 86px 1fr;
+        gap: 8px;
+    }
+
+    .exportar-select {
+        min-width: 0;
     }
 }
 

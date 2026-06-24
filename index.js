@@ -61,7 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAgregarCategoria = document.getElementById('btnAgregarCategoria');
     const contenedorListaCategorias = document.getElementById('contenedorListaCategorias');
     const btnGuardarBaseDatos = document.getElementById('btnGuardarBaseDatos');
-    const btnDescargarPDF = document.getElementById('btnDescargarPDF');
+    const btnExportar = document.getElementById('btnExportar');
+    const tipoExportacion = document.getElementById('tipoExportacion');
     const rolActualElemento = document.getElementById('rolActual');
     const cajaPegarImagen = document.getElementById('cajaPegarImagen');
     const textoPegar = document.getElementById('textoPegar');
@@ -122,6 +123,133 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<a class="anexo-enlace" href="${anexo.data}" download="${nombreSeguro}">${nombreSeguro}</a>`;
         }
         return `<span class="anexo-txt">${nombreSeguro}</span>`;
+    }
+
+    function limpiarTextoExport(valor) {
+        return String(valor ?? '').replace(/\s+/g, ' ').trim();
+    }
+
+    function obtenerFilasExportacion() {
+        return obtenerProductosVisibles().map(prod => ({
+            codigo: limpiarTextoExport(prod.codigo),
+            categoria: limpiarTextoExport(prod.categoria),
+            marca: limpiarTextoExport(prod.marca),
+            detalle: limpiarTextoExport(prod.detalle),
+            etiqueta: limpiarTextoExport(prod.etiqueta),
+            anexo: limpiarTextoExport(nombreAnexo(prod.anexo)),
+            contenido: limpiarTextoExport(prod.contenido),
+            medida: limpiarTextoExport(prod.medida),
+            stock: limpiarTextoExport(prod.stock),
+            estado: limpiarTextoExport(textoEstadoStock(obtenerEstadoStock(prod.stock)).replace('●', ''))
+        }));
+    }
+
+    function exportarExcel() {
+        const encabezados = ['Código', 'Categoría', 'Marca', 'Detalle', 'Etiqueta', 'Anexo', 'Contenido', 'Medida', 'Stock', 'Estado'];
+        const filas = obtenerFilasExportacion();
+        const csv = [
+            encabezados,
+            ...filas.map(fila => [fila.codigo, fila.categoria, fila.marca, fila.detalle, fila.etiqueta, fila.anexo, fila.contenido, fila.medida, fila.stock, fila.estado])
+        ].map(row => row.map(valor => `"${String(valor).replaceAll('"', '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `inventario-mollie-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function exportarPDF() {
+        const filas = obtenerFilasExportacion();
+        const filasHtml = filas.map(fila => `
+            <tr>
+                <td>${escaparHtml(fila.codigo)}</td>
+                <td>${escaparHtml(fila.categoria)}</td>
+                <td>${escaparHtml(fila.marca)}</td>
+                <td>${escaparHtml(fila.detalle)}</td>
+                <td>${escaparHtml(fila.etiqueta)}</td>
+                <td>${escaparHtml(fila.anexo)}</td>
+                <td>${escaparHtml(fila.contenido)}</td>
+                <td>${escaparHtml(fila.medida)}</td>
+                <td>${escaparHtml(fila.stock)}</td>
+                <td>${escaparHtml(fila.estado)}</td>
+            </tr>
+        `).join('');
+        const htmlReporte = `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <title>Inventario Mollie Aspen</title>
+                <style>
+                    @page { size: landscape; margin: 10mm; }
+                    * { box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; color: #111827; margin: 0; }
+                    h1 { font-size: 18px; margin: 0 0 4px; }
+                    .meta { color: #4b5563; font-size: 11px; margin-bottom: 12px; }
+                    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+                    th, td { border: 1px solid #cbd5e1; padding: 5px 6px; font-size: 9px; line-height: 1.25; vertical-align: top; word-wrap: break-word; }
+                    th { background: #eef2ff; color: #1f2937; font-size: 8px; text-transform: uppercase; }
+                    th:nth-child(1), td:nth-child(1) { width: 8%; }
+                    th:nth-child(2), td:nth-child(2) { width: 10%; }
+                    th:nth-child(3), td:nth-child(3) { width: 10%; }
+                    th:nth-child(4), td:nth-child(4) { width: 17%; }
+                    th:nth-child(5), td:nth-child(5) { width: 9%; }
+                    th:nth-child(6), td:nth-child(6) { width: 10%; }
+                    th:nth-child(7), td:nth-child(7) { width: 14%; }
+                    th:nth-child(8), td:nth-child(8) { width: 7%; }
+                    th:nth-child(9), td:nth-child(9) { width: 5%; text-align: center; }
+                    th:nth-child(10), td:nth-child(10) { width: 10%; }
+                </style>
+            </head>
+            <body>
+                <h1>Inventario Mollie Aspen</h1>
+                <div class="meta">Productos exportados: ${filas.length} · ${new Date().toLocaleString('es-SV')}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Categoría</th>
+                            <th>Marca</th>
+                            <th>Detalle</th>
+                            <th>Etiqueta</th>
+                            <th>Anexo</th>
+                            <th>Contenido</th>
+                            <th>Medida</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filasHtml}</tbody>
+                </table>
+            </body>
+            </html>
+        `;
+        const iframeAnterior = document.getElementById('__iframeExportPDF');
+        iframeAnterior?.remove();
+
+        const iframe = document.createElement('iframe');
+        iframe.id = '__iframeExportPDF';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlReporte);
+        doc.close();
+
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => iframe.remove(), 1000);
+        }, 150);
     }
 
     function abrirMenuMovil() {
@@ -743,11 +871,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // PDF Export
+    // Export
     // ============================================================
-    if (btnDescargarPDF) {
-        btnDescargarPDF.addEventListener('click', () => window.print());
-    }
+    btnExportar?.addEventListener('click', () => {
+        if (tipoExportacion?.value === 'excel') exportarExcel();
+        else exportarPDF();
+    });
 
     // ============================================================
     // Search / Filter

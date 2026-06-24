@@ -174,9 +174,15 @@
                 <div class="contador-badges">
                     Total Productos: <strong id="contadorProductos">0</strong>
                 </div>
-                <button type="button" class="btn-descargar-pdf" id="btnDescargarPDF">
-                    📄 Exportar PDF
-                </button>
+                <div class="exportar-grupo">
+                    <select id="tipoExportacion" class="control-filtro exportar-select" aria-label="Tipo de exportación">
+                        <option value="pdf">PDF</option>
+                        <option value="excel">Excel</option>
+                    </select>
+                    <button type="button" class="btn-descargar-pdf" id="btnExportar">
+                        Exportar
+                    </button>
+                </div>
                 <button type="button" class="btn-guardar-cambios" id="btnGuardarBaseDatos">
                     🔄 Sincronizar
                 </button>
