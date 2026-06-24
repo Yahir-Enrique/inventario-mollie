@@ -160,13 +160,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function obtenerEstadoStock(stock) {
         const cantidad = Number(stock);
         if (cantidad === 0) return 'agotado';
+        return 'disponible';
+    }
+
+    function obtenerClaseStock(stock) {
+        const cantidad = Number(stock);
+        if (cantidad === 0) return 'agotado';
         if (cantidad <= 5) return 'bajo';
         return 'disponible';
     }
 
     function textoEstadoStock(estado) {
         if (estado === 'agotado') return '● Agotado';
-        if (estado === 'bajo') return '● Stock Bajo';
         return '● Disponible';
     }
 
@@ -191,7 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ].some(valor => normalizarTexto(valor).includes(query));
 
                 const coincideCategoria = !categoria || normalizarTexto(prod.categoria) === categoria;
-                const coincideStock = !estadoStock || obtenerEstadoStock(prod.stock) === estadoStock;
+                const coincideStock = !estadoStock
+                    || obtenerEstadoStock(prod.stock) === estadoStock
+                    || (estadoStock === 'bajo' && obtenerClaseStock(prod.stock) === 'bajo');
                 return coincideBusqueda && coincideCategoria && coincideStock;
             })
             .sort((a, b) => {
@@ -516,8 +523,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const productosVisibles = obtenerProductosVisibles();
         productosVisibles.forEach((prod) => {
             const fila = document.createElement('tr');
-            const claseEstado = obtenerEstadoStock(prod.stock);
-            const textoEstado = textoEstadoStock(claseEstado);
+            const claseEstado = obtenerClaseStock(prod.stock);
+            const textoEstado = textoEstadoStock(obtenerEstadoStock(prod.stock));
             const operaciones = rolActual === 'admin'
                 ? `<button type="button" class="btn-op btn-editar" data-id="${prod.id}">Editar</button>
                    <button type="button" class="btn-op btn-borrar" data-id="${prod.id}">Borrar</button>`
