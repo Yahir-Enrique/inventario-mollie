@@ -33,7 +33,10 @@
                 </div>
                 <div class="campo">
                     <label for="loginPassword">Contraseña</label>
-                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                    <div class="password-caja">
+                        <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="btn-toggle-password" data-password-target="loginPassword" aria-label="Ver contraseña" title="Ver contraseña">Ver</button>
+                    </div>
                 </div>
             </div>
             <button type="submit" id="btnLoginAccion" class="btn-accion">Ingresar al Sistema</button>
@@ -54,15 +57,25 @@
             </div>
             <div class="herramientas-sesion">
                 <div class="rol-usuario">Rol: <span id="rolActual" class="badge-rol">-</span></div>
+                <button class="btn-menu-movil" id="btnMenuMovil" type="button" aria-label="Abrir menú">☰</button>
                 <button class="btn-theme" id="toggleTheme" title="Cambiar Tema">🌙</button>
                 <button class="btn-cerrar-sesion" id="btnCerrarSesion">Salir 🚪</button>
             </div>
         </header>
 
-        <!-- Top Panel (Gestion Forms) -->
-        <div class="seccion-gestion-superior">
+        <div class="layout-app">
+            <div class="overlay-menu" id="overlayMenu"></div>
+            <aside class="panel-navegacion" id="panelNavegacion" aria-label="Navegación principal">
+                <div class="nav-titulo">Gestión</div>
+                <button type="button" class="nav-link activo" data-vista="inventario">Inventario</button>
+                <a class="nav-link nav-admin" href="usuarios.html">Usuarios</a>
+            </aside>
+
+            <main class="contenido-app">
 
             <!-- Panel: Formulario de Inventario -->
+            <section class="vista-app activa" data-panel-vista="inventario">
+            <div class="inventario-form-grid">
             <section class="panel-formulario">
                 <h3 id="tituloFormulario">+ Añadir Elemento al Inventario</h3>
                 <form id="formularioInventario">
@@ -87,7 +100,9 @@
                         <div class="campo">
                             <label>Imagen del Producto</label>
                             <div class="zona-pegar-imagen" id="cajaPegarImagen" tabindex="0">
-                                <span id="textoPegar">Haz clic y presiona Ctrl+V para pegar imagen</span>
+                                <span id="textoPegar">Sube una imagen o pega con Ctrl+V</span>
+                                <label for="inputImagenProducto" class="btn-subir-imagen">Seleccionar imagen</label>
+                                <input type="file" id="inputImagenProducto" accept="image/*">
                                 <img src="" id="previsualizacionPegada" class="miniatura-pegar" alt="Miniatura">
                             </div>
                         </div>
@@ -96,8 +111,13 @@
                             <input type="text" id="insEtiqueta" placeholder="Ej: Calibrado" required>
                         </div>
                         <div class="campo">
-                            <label for="insAnexo">Anexo</label>
-                            <input type="text" id="insAnexo" placeholder="Manual.pdf" value="Anexo.pdf">
+                            <label>Anexo</label>
+                            <div class="anexo-upload">
+                                <input type="hidden" id="insAnexo" value="">
+                                <span id="textoAnexo">PDF, documento o imagen</span>
+                                <label for="inputAnexoProducto" class="btn-subir-imagen">Seleccionar anexo</label>
+                                <input type="file" id="inputAnexoProducto" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.webp,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            </div>
                         </div>
                         <div class="campo">
                             <label for="insContenido">Contenido</label>
@@ -116,45 +136,39 @@
                 </form>
             </section>
 
-            <!-- Panel: Categorías + Usuarios -->
-            <div class="seccion-admin-controles">
-
-                <!-- Gestor de Categorías -->
-                <section class="panel-formulario">
-                    <h3>🛠️ Categorías</h3>
-                    <div class="campo-fila-add">
-                        <input type="text" id="nuevaCategoriaInput" placeholder="Nueva Categoría...">
-                        <button type="button" id="btnAgregarCategoria" class="btn-accion-icono">+</button>
-                    </div>
-                    <div class="lista-categorias-admin" id="contenedorListaCategorias"></div>
-                </section>
-
-                <!-- Gestión de Usuarios (solo visible para admin) -->
-                <section class="panel-formulario" id="panelUsuarios">
-                    <h3 id="tituloUsuarios">👥 Usuarios</h3>
-                    <div class="campo-admin-user">
-                        <input type="hidden" id="editUserId" value="-1">
-                        <input type="text" id="newUsername" placeholder="Usuario...">
-                        <input type="password" id="newPassword" placeholder="Contraseña...">
-                        <select id="newRole">
-                            <option value="cajero">Cajero</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                        <div class="acciones-usuario-form">
-                            <button type="button" id="btnAgregarUsuario" class="btn-accion">Crear Usuario</button>
-                            <button type="button" id="btnCancelarUsuario" class="btn-secundario" hidden>Cancelar</button>
-                        </div>
-                    </div>
-                    <div class="lista-categorias-admin" id="listaUsuarios"></div>
-                </section>
-
+            <section class="panel-formulario panel-categorias-lateral" id="panelCategorias">
+                <h3>🛠️ Categorías</h3>
+                <div class="campo-fila-add">
+                    <input type="text" id="nuevaCategoriaInput" placeholder="Nueva Categoría...">
+                    <button type="button" id="btnAgregarCategoria" class="btn-accion-icono">+</button>
+                </div>
+                <div class="lista-categorias-admin" id="contenedorListaCategorias"></div>
+            </section>
             </div>
-        </div>
 
         <!-- Toolbar (Search + Filters + Stats) -->
         <div class="barra-herramientas">
-            <div class="buscador-caja">
-                <input type="text" id="cajaBusqueda" placeholder="Buscar por código, marca, categoría, detalles...">
+            <div class="filtros-inventario">
+                <div class="buscador-caja">
+                    <input type="text" id="cajaBusqueda" placeholder="Buscar por código, marca, categoría, detalles...">
+                </div>
+                <select id="filtroCategoria" class="control-filtro" aria-label="Filtrar por categoría">
+                    <option value="">Todas las categorías</option>
+                </select>
+                <select id="filtroEstadoStock" class="control-filtro" aria-label="Filtrar por stock">
+                    <option value="">Todo el stock</option>
+                    <option value="disponible">Disponible</option>
+                    <option value="bajo">Stock bajo</option>
+                    <option value="agotado">Agotado</option>
+                </select>
+                <select id="ordenInventario" class="control-filtro" aria-label="Ordenar inventario">
+                    <option value="codigo-asc">Código 1-9</option>
+                    <option value="codigo-desc">Código 9-1</option>
+                    <option value="categoria">Categoría A-Z</option>
+                    <option value="marca">Marca A-Z</option>
+                    <option value="stock-asc">Stock menor</option>
+                    <option value="stock-desc">Stock mayor</option>
+                </select>
             </div>
             <div class="herramientas-derecha">
                 <div class="contador-badges">
@@ -189,6 +203,10 @@
                 </thead>
                 <tbody id="tablaCuerpo"></tbody>
             </table>
+        </div>
+        </section>
+
+            </main>
         </div>
     </div>
 

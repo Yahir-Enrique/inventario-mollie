@@ -6,6 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginPassword = document.getElementById('loginPassword');
     const btnCerrarSesion = document.getElementById('btnCerrarSesion');
     const toggleThemeBtn = document.getElementById('toggleTheme');
+    const btnMenuMovil = document.getElementById('btnMenuMovil');
+    const panelNavegacion = document.getElementById('panelNavegacion');
+    const overlayMenu = document.getElementById('overlayMenu');
+    const navLinks = document.querySelectorAll('.nav-link[data-vista]');
+    const navAdminLinks = document.querySelectorAll('.nav-admin');
+    const panelesVista = document.querySelectorAll('[data-panel-vista]');
 
     // ============================================================
     // Theme Handling
@@ -33,16 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let rolActual = null;
     let categorias = [];
     let baseDatosInventario = [];
+    let vistaActual = 'inventario';
 
     // ============================================================
     // DOM References
     // ============================================================
     const formulario = document.getElementById('formularioInventario');
+    const panelFormularioInventario = formulario.closest('.panel-formulario');
+    const panelCategorias = document.getElementById('panelCategorias');
     const editIndex = document.getElementById('editIndex');
     const tituloFormulario = document.getElementById('tituloFormulario');
     const btnSubmitForm = document.getElementById('btnSubmitForm');
     const tablaCuerpo = document.getElementById('tablaCuerpo');
     const cajaBusqueda = document.getElementById('cajaBusqueda');
+    const filtroCategoria = document.getElementById('filtroCategoria');
+    const filtroEstadoStock = document.getElementById('filtroEstadoStock');
+    const ordenInventario = document.getElementById('ordenInventario');
     const contadorProductos = document.getElementById('contadorProductos');
     const selectCategoria = document.getElementById('insCategoria');
     const nuevaCategoriaInput = document.getElementById('nuevaCategoriaInput');
@@ -51,11 +63,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnGuardarBaseDatos = document.getElementById('btnGuardarBaseDatos');
     const btnDescargarPDF = document.getElementById('btnDescargarPDF');
     const rolActualElemento = document.getElementById('rolActual');
-    const panelGestionSuperior = document.querySelector('.seccion-gestion-superior');
     const cajaPegarImagen = document.getElementById('cajaPegarImagen');
     const textoPegar = document.getElementById('textoPegar');
+    const inputImagenProducto = document.getElementById('inputImagenProducto');
     const previsualizacionPegada = document.getElementById('previsualizacionPegada');
     let imagenBase64Guardada = '';
+    const insAnexo = document.getElementById('insAnexo');
+    const inputAnexoProducto = document.getElementById('inputAnexoProducto');
+    const textoAnexo = document.getElementById('textoAnexo');
+    let anexoGuardado = '';
 
     const miModal = document.getElementById('miModal');
     const cerrarModal = document.getElementById('cerrarModal');
@@ -63,18 +79,196 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalImgProducto = document.getElementById('modalImgProducto');
     const modalTextoDetalle = document.getElementById('modalTextoDetalle');
 
-    const panelUsuarios = document.getElementById('panelUsuarios');
-    const tituloUsuarios = document.getElementById('tituloUsuarios');
-    const editUserId = document.getElementById('editUserId');
-    const newUsername = document.getElementById('newUsername');
-    const newPassword = document.getElementById('newPassword');
-    const newRole = document.getElementById('newRole');
-    const btnAgregarUsuario = document.getElementById('btnAgregarUsuario');
-    const btnCancelarUsuario = document.getElementById('btnCancelarUsuario');
-    const listaUsuarios = document.getElementById('listaUsuarios');
     const toastContainer = document.getElementById('toastContainer');
 
     const TOKEN_KEY = 'mollie_api_token';
+
+    // ============================================================
+    // UI Helpers
+    // ============================================================
+    function normalizarTexto(valor) {
+        return String(valor ?? '').trim().toLowerCase();
+    }
+
+    function escaparHtml(valor) {
+        return String(valor ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function parsearAnexo(valor) {
+        if (!valor) return null;
+        try {
+            const data = JSON.parse(valor);
+            if (data && data.name) return data;
+        } catch {
+            // Old records can have only a filename as plain text.
+        }
+        return { name: valor, data: '', type: '' };
+    }
+
+    function nombreAnexo(valor) {
+        return parsearAnexo(valor)?.name || '';
+    }
+
+    function renderizarAnexo(valor) {
+        const anexo = parsearAnexo(valor);
+        if (!anexo?.name) return '<span class="anexo-txt">Sin anexo</span>';
+        const nombreSeguro = escaparHtml(anexo.name);
+        if (anexo.data) {
+            return `<a class="anexo-enlace" href="${anexo.data}" download="${nombreSeguro}">${nombreSeguro}</a>`;
+        }
+        return `<span class="anexo-txt">${nombreSeguro}</span>`;
+    }
+
+    function abrirMenuMovil() {
+        document.body.classList.add('menu-abierto');
+    }
+
+    function cerrarMenuMovil() {
+        document.body.classList.remove('menu-abierto');
+    }
+
+    function mostrarVista(vista) {
+        const esAdmin = rolActual === 'admin';
+        const destino = (!esAdmin && vista !== 'inventario') ? 'inventario' : vista;
+        vistaActual = destino;
+        panelesVista.forEach(panel => {
+            panel.classList.toggle('activa', panel.dataset.panelVista === destino);
+        });
+        navLinks.forEach(link => {
+            link.classList.toggle('activo', link.dataset.vista === destino);
+        });
+        cerrarMenuMovil();
+    }
+
+    function extraerNumeroCodigo(codigo) {
+        const coincidencias = String(codigo ?? '').match(/\d+/g);
+        return coincidencias ? Number(coincidencias[coincidencias.length - 1]) : Number.POSITIVE_INFINITY;
+    }
+
+    function compararCodigos(a, b) {
+        const numeroA = extraerNumeroCodigo(a.codigo);
+        const numeroB = extraerNumeroCodigo(b.codigo);
+        if (numeroA !== numeroB) return numeroA - numeroB;
+        return String(a.codigo ?? '').localeCompare(String(b.codigo ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function obtenerEstadoStock(stock) {
+        const cantidad = Number(stock);
+        if (cantidad === 0) return 'agotado';
+        if (cantidad <= 5) return 'bajo';
+        return 'disponible';
+    }
+
+    function textoEstadoStock(estado) {
+        if (estado === 'agotado') return '● Agotado';
+        if (estado === 'bajo') return '● Stock Bajo';
+        return '● Disponible';
+    }
+
+    function obtenerProductosVisibles() {
+        const query = normalizarTexto(cajaBusqueda.value);
+        const categoria = normalizarTexto(filtroCategoria?.value);
+        const estadoStock = filtroEstadoStock?.value || '';
+        const orden = ordenInventario?.value || 'codigo-asc';
+
+        return [...baseDatosInventario]
+            .filter((prod) => {
+                const coincideBusqueda = !query || [
+                    prod.codigo,
+                    prod.categoria,
+                    prod.marca,
+                    prod.detalle,
+                    prod.etiqueta,
+                    nombreAnexo(prod.anexo),
+                    prod.contenido,
+                    prod.medida,
+                    prod.stock
+                ].some(valor => normalizarTexto(valor).includes(query));
+
+                const coincideCategoria = !categoria || normalizarTexto(prod.categoria) === categoria;
+                const coincideStock = !estadoStock || obtenerEstadoStock(prod.stock) === estadoStock;
+                return coincideBusqueda && coincideCategoria && coincideStock;
+            })
+            .sort((a, b) => {
+                if (orden === 'codigo-desc') return compararCodigos(b, a);
+                if (orden === 'categoria') return String(a.categoria ?? '').localeCompare(String(b.categoria ?? ''), undefined, { sensitivity: 'base' }) || compararCodigos(a, b);
+                if (orden === 'marca') return String(a.marca ?? '').localeCompare(String(b.marca ?? ''), undefined, { sensitivity: 'base' }) || compararCodigos(a, b);
+                if (orden === 'stock-asc') return Number(a.stock) - Number(b.stock) || compararCodigos(a, b);
+                if (orden === 'stock-desc') return Number(b.stock) - Number(a.stock) || compararCodigos(a, b);
+                return compararCodigos(a, b);
+            });
+    }
+
+    function limpiarImagenProducto() {
+        imagenBase64Guardada = '';
+        if (inputImagenProducto) inputImagenProducto.value = '';
+        previsualizacionPegada.removeAttribute('src');
+        previsualizacionPegada.style.display = 'none';
+        textoPegar.textContent = 'Sube una imagen o pega con Ctrl+V';
+    }
+
+    function cargarImagenProducto(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            mostrarError('Selecciona un archivo de imagen válido.');
+            if (inputImagenProducto) inputImagenProducto.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imagenBase64Guardada = event.target.result;
+            previsualizacionPegada.src = imagenBase64Guardada;
+            previsualizacionPegada.style.display = 'block';
+            textoPegar.textContent = 'Imagen cargada';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function limpiarAnexoProducto() {
+        anexoGuardado = '';
+        if (insAnexo) insAnexo.value = '';
+        if (inputAnexoProducto) inputAnexoProducto.value = '';
+        if (textoAnexo) textoAnexo.textContent = 'PDF, documento o imagen';
+    }
+
+    function cargarAnexoProducto(file) {
+        if (!file) return;
+        const tiposPermitidos = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'text/plain'
+        ];
+        const esImagen = file.type.startsWith('image/');
+        const esPermitido = esImagen || tiposPermitidos.includes(file.type) || /\.(pdf|docx?|xlsx?|pptx?|txt)$/i.test(file.name);
+        if (!esPermitido) {
+            mostrarError('Selecciona un PDF, documento, hoja de cálculo, presentación, texto o imagen.');
+            if (inputAnexoProducto) inputAnexoProducto.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            anexoGuardado = JSON.stringify({
+                name: file.name,
+                type: file.type || 'application/octet-stream',
+                data: event.target.result
+            });
+            if (insAnexo) insAnexo.value = anexoGuardado;
+            if (textoAnexo) textoAnexo.textContent = file.name;
+        };
+        reader.readAsDataURL(file);
+    }
 
     // ============================================================
     // Auth Token
@@ -195,10 +389,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.querySelectorAll('.btn-toggle-password').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const input = document.getElementById(btn.dataset.passwordTarget);
+            if (!input) return;
+            const mostrar = input.type === 'password';
+            input.type = mostrar ? 'text' : 'password';
+            btn.textContent = mostrar ? 'Ocultar' : 'Ver';
+            btn.setAttribute('aria-label', mostrar ? 'Ocultar contraseña' : 'Ver contraseña');
+            btn.title = mostrar ? 'Ocultar contraseña' : 'Ver contraseña';
+        });
+    });
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => mostrarVista(link.dataset.vista));
+    });
+
+    btnMenuMovil?.addEventListener('click', abrirMenuMovil);
+    overlayMenu?.addEventListener('click', cerrarMenuMovil);
+
     btnCerrarSesion.addEventListener('click', () => {
         setToken(null);
         usuarioActual = null;
         rolActual = null;
+        cerrarMenuMovil();
         seccionLogin.style.display = 'flex';
         seccionInventario.style.display = 'none';
     });
@@ -242,43 +456,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { mostrarError(error.message); }
     }
 
-    async function cargarUsuarios() {
-        if (rolActual !== 'admin') return;
-        try {
-            const usuarios = await fetchApi('/api/users');
-            renderizarUsuarios(usuarios);
-        } catch { /* silent */ }
-    }
-
     // ============================================================
     // Render Functions
     // ============================================================
-    function renderizarUsuarios(usuarios) {
-        if (!listaUsuarios) return;
-        listaUsuarios.innerHTML = '';
-        usuarios.forEach(u => {
-            const item = document.createElement('div');
-            item.className = 'item-categoria-admin';
-            item.dataset.id = u.id;
-            item.dataset.username = u.username;
-            item.dataset.role = u.role;
-            const deleteBtn = u.username === usuarioActual
-                ? ''
-                : `<button type="button" class="btn-mini-eliminar btn-eliminar-usuario" data-id="${u.id}">✕</button>`;
-            item.innerHTML = `
-                <span><strong>${u.username}</strong> (${u.role})</span>
-                <div class="usuario-acciones">
-                    <button type="button" class="btn-mini-editar btn-editar-usuario" data-id="${u.id}">Editar</button>
-                    ${deleteBtn}
-                </div>
-            `;
-            listaUsuarios.appendChild(item);
-        });
-    }
-
     function actualizarInterfazCategorias() {
         const categoriaSeleccionada = selectCategoria.value;
+        const filtroSeleccionado = filtroCategoria?.value || '';
         selectCategoria.innerHTML = '<option value="">-- Seleccionar --</option>';
+        if (filtroCategoria) {
+            filtroCategoria.innerHTML = '<option value="">Todas las categorías</option>';
+        }
         [...categorias]
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(cat => {
@@ -286,9 +473,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.value = cat.name;
                 opt.textContent = cat.name;
                 selectCategoria.appendChild(opt);
+                if (filtroCategoria) {
+                    const filtroOpt = document.createElement('option');
+                    filtroOpt.value = cat.name;
+                    filtroOpt.textContent = cat.name;
+                    filtroCategoria.appendChild(filtroOpt);
+                }
             });
         if (categoriaSeleccionada && [...selectCategoria.options].some(opt => opt.value === categoriaSeleccionada)) {
             selectCategoria.value = categoriaSeleccionada;
+        }
+        if (filtroCategoria && filtroSeleccionado && [...filtroCategoria.options].some(opt => opt.value === filtroSeleccionado)) {
+            filtroCategoria.value = filtroSeleccionado;
         }
         contenedorListaCategorias.innerHTML = '';
         categorias.forEach(cat => {
@@ -301,40 +497,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarVistaPorRol() {
         const esAdmin = rolActual === 'admin';
-        panelGestionSuperior.style.display = esAdmin ? 'grid' : 'none';
+        if (panelFormularioInventario) panelFormularioInventario.style.display = esAdmin ? 'flex' : 'none';
+        if (panelCategorias) panelCategorias.style.display = esAdmin ? 'flex' : 'none';
         btnGuardarBaseDatos.style.display = esAdmin ? 'inline-flex' : 'none';
-        if (panelUsuarios) panelUsuarios.style.display = esAdmin ? 'block' : 'none';
+        navAdminLinks.forEach(link => {
+            link.style.display = esAdmin ? 'flex' : 'none';
+        });
         rolActualElemento.textContent = esAdmin ? 'Administrador' : 'Cajero';
+        if (!esAdmin && vistaActual !== 'inventario') {
+            vistaActual = 'inventario';
+        }
+        mostrarVista(vistaActual);
         renderizarTablaVisual();
-        if (esAdmin) cargarUsuarios();
     }
 
     function renderizarTablaVisual() {
         tablaCuerpo.innerHTML = '';
-        baseDatosInventario.forEach((prod) => {
+        const productosVisibles = obtenerProductosVisibles();
+        productosVisibles.forEach((prod) => {
             const fila = document.createElement('tr');
-            const claseEstado = prod.stock === 0 ? 'agotado' : prod.stock <= 5 ? 'bajo' : 'disponible';
-            const textoEstado = prod.stock === 0 ? '● Agotado' : prod.stock <= 5 ? '● Stock Bajo' : '● Disponible';
+            const claseEstado = obtenerEstadoStock(prod.stock);
+            const textoEstado = textoEstadoStock(claseEstado);
             const operaciones = rolActual === 'admin'
                 ? `<button type="button" class="btn-op btn-editar" data-id="${prod.id}">Editar</button>
                    <button type="button" class="btn-op btn-borrar" data-id="${prod.id}">Borrar</button>`
                 : `<span style="color: var(--text-muted); font-size: 12px;">Sin permisos</span>`;
             fila.innerHTML = `
-                <td class="codigo-txt">${prod.codigo}</td>
-                <td><span class="badge-categoria">${prod.categoria}</span></td>
-                <td style="font-weight:600;">${prod.marca}</td>
-                <td><button type="button" class="btn-detalle-link" data-id="${prod.id}">${prod.detalle}</button></td>
-                <td>${prod.etiqueta}</td>
-                <td><span class="anexo-txt">${prod.anexo}</span></td>
-                <td>${prod.contenido}</td>
-                <td>${prod.medida}</td>
-                <td style="text-align:center; font-weight:700;">${prod.stock}</td>
-                <td><span class="badge-estado ${claseEstado}">${textoEstado}</span></td>
-                <td>${operaciones}</td>
+                <td data-label="Código" class="codigo-txt">${prod.codigo}</td>
+                <td data-label="Categoría"><span class="badge-categoria">${prod.categoria}</span></td>
+                <td data-label="Marca" style="font-weight:600;">${prod.marca}</td>
+                <td data-label="Detalle"><button type="button" class="btn-detalle-link" data-id="${prod.id}">${prod.detalle}</button></td>
+                <td data-label="Etiqueta">${prod.etiqueta}</td>
+                <td data-label="Anexo">${renderizarAnexo(prod.anexo)}</td>
+                <td data-label="Contenido">${prod.contenido}</td>
+                <td data-label="Medida">${prod.medida}</td>
+                <td data-label="Stock" style="text-align:center; font-weight:700;">${prod.stock}</td>
+                <td data-label="Estado"><span class="badge-estado ${claseEstado}">${textoEstado}</span></td>
+                <td data-label="Operaciones">${operaciones}</td>
             `;
             tablaCuerpo.appendChild(fila);
         });
-        contadorProductos.textContent = baseDatosInventario.length;
+        contadorProductos.textContent = productosVisibles.length === baseDatosInventario.length
+            ? baseDatosInventario.length
+            : `${productosVisibles.length} / ${baseDatosInventario.length}`;
     }
 
     // ============================================================
@@ -354,9 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editIndex.value = '-1';
             tituloFormulario.textContent = '+ Añadir Elemento al Inventario';
             btnSubmitForm.textContent = 'Agregar al Inventario';
-            imagenBase64Guardada = '';
-            previsualizacionPegada.style.display = 'none';
-            textoPegar.textContent = 'Haz clic y presiona Ctrl+V para pegar imagen';
+            limpiarImagenProducto();
+            limpiarAnexoProducto();
             await cargarInventario();
         } catch (error) {
             mostrarError(error.message);
@@ -372,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             detalle: document.getElementById('insDetalle').value,
             imagen: imagenBase64Guardada,
             etiqueta: document.getElementById('insEtiqueta').value,
-            anexo: document.getElementById('insAnexo').value,
+            anexo: anexoGuardado || insAnexo.value,
             contenido: document.getElementById('insContenido').value,
             medida: document.getElementById('insMedida').value,
             stock: parseInt(document.getElementById('insStock').value, 10)
@@ -404,7 +608,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <strong>Categoría:</strong> ${producto.categoria}<br>
                 <strong>Contenido:</strong> ${producto.contenido}<br>
                 <strong>Unidad:</strong> ${producto.medida}<br>
-                <strong>Etiqueta:</strong> ${producto.etiqueta}
+                <strong>Etiqueta:</strong> ${producto.etiqueta}<br>
+                <strong>Anexo:</strong> ${renderizarAnexo(producto.anexo)}
             `;
             miModal.classList.add('activo');
             return;
@@ -429,13 +634,18 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('insMarca').value = producto.marca;
             document.getElementById('insDetalle').value = producto.detalle;
             document.getElementById('insEtiqueta').value = producto.etiqueta;
-            document.getElementById('insAnexo').value = producto.anexo;
+            anexoGuardado = producto.anexo || '';
+            if (insAnexo) insAnexo.value = anexoGuardado;
+            if (inputAnexoProducto) inputAnexoProducto.value = '';
+            if (textoAnexo) textoAnexo.textContent = nombreAnexo(producto.anexo) || 'PDF, documento o imagen';
             document.getElementById('insContenido').value = producto.contenido;
             document.getElementById('insMedida').value = producto.medida;
             document.getElementById('insStock').value = producto.stock;
             imagenBase64Guardada = producto.imagen;
+            if (inputImagenProducto) inputImagenProducto.value = '';
             previsualizacionPegada.src = producto.imagen || '';
             previsualizacionPegada.style.display = producto.imagen ? 'block' : 'none';
+            textoPegar.textContent = producto.imagen ? 'Imagen cargada' : 'Sube una imagen o pega con Ctrl+V';
             editIndex.value = producto.id;
             tituloFormulario.textContent = `✏️ Editando: ${producto.codigo}`;
             btnSubmitForm.textContent = 'Guardar Cambios';
@@ -449,21 +659,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // Paste Image
+    // Product Image
     // ============================================================
+    if (inputImagenProducto) {
+        inputImagenProducto.addEventListener('change', (e) => {
+            cargarImagenProducto(e.target.files?.[0]);
+        });
+    }
+
+    if (inputAnexoProducto) {
+        inputAnexoProducto.addEventListener('change', (e) => {
+            cargarAnexoProducto(e.target.files?.[0]);
+        });
+    }
+
+    cajaPegarImagen.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-subir-imagen') || e.target === inputImagenProducto) return;
+        cajaPegarImagen.focus();
+    });
+
     cajaPegarImagen.addEventListener('paste', (e) => {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (const item of items) {
             if (item.type.startsWith('image/')) {
-                const blob = item.getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imagenBase64Guardada = event.target.result;
-                    previsualizacionPegada.src = imagenBase64Guardada;
-                    previsualizacionPegada.style.display = 'block';
-                    textoPegar.textContent = '✓ Imagen cargada';
-                };
-                reader.readAsDataURL(blob);
+                cargarImagenProducto(item.getAsFile());
                 e.preventDefault();
                 break;
             }
@@ -498,88 +717,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // User Management
-    // ============================================================
-    function limpiarFormularioUsuario() {
-        editUserId.value = '-1';
-        newUsername.value = '';
-        newPassword.value = '';
-        newRole.value = 'cajero';
-        newPassword.placeholder = 'Contraseña...';
-        tituloUsuarios.textContent = '👥 Usuarios';
-        btnAgregarUsuario.textContent = 'Crear Usuario';
-        btnCancelarUsuario.hidden = true;
-    }
-
-    if (btnAgregarUsuario) {
-        btnAgregarUsuario.addEventListener('click', async () => {
-            const editingUserId = parseInt(editUserId.value, 10);
-            const username = newUsername.value.trim().toLowerCase();
-            const password = newPassword.value;
-            const role = newRole.value;
-            if (!username || (!password && editingUserId <= 0)) {
-                mostrarError('Completa el usuario y la contraseña.');
-                return;
-            }
-            try {
-                if (editingUserId > 0) {
-                    const data = await fetchApi(`/api/users/${editingUserId}`, {
-                        method: 'PUT',
-                        body: { username, password, role }
-                    });
-                    if (data.token) {
-                        setToken(data.token);
-                        usuarioActual = data.username;
-                        rolActual = data.role;
-                        actualizarVistaPorRol();
-                    }
-                    mostrarMensaje('Usuario actualizado.');
-                } else {
-                    await fetchApi('/api/users', { method: 'POST', body: { username, password, role } });
-                    mostrarMensaje('Usuario creado.');
-                }
-                limpiarFormularioUsuario();
-                await cargarUsuarios();
-            } catch (error) { mostrarError(error.message); }
-        });
-    }
-
-    if (btnCancelarUsuario) {
-        btnCancelarUsuario.addEventListener('click', limpiarFormularioUsuario);
-    }
-
-    if (listaUsuarios) {
-        listaUsuarios.addEventListener('click', async (e) => {
-            const btnEditar = e.target.closest('.btn-editar-usuario');
-            const btnEliminar = e.target.closest('.btn-eliminar-usuario');
-
-            if (btnEditar) {
-                const item = btnEditar.closest('.item-categoria-admin');
-                editUserId.value = item.dataset.id;
-                newUsername.value = item.dataset.username;
-                newPassword.value = '';
-                newPassword.placeholder = 'Nueva contraseña (opcional)';
-                newRole.value = item.dataset.role;
-                tituloUsuarios.textContent = `Editando: ${item.dataset.username}`;
-                btnAgregarUsuario.textContent = 'Guardar Cambios';
-                btnCancelarUsuario.hidden = false;
-                newUsername.focus();
-                return;
-            }
-
-            if (!btnEliminar) return;
-            const id = btnEliminar.getAttribute('data-id');
-            mostrarConfirm('¿Eliminar este usuario permanentemente?', async () => {
-                try {
-                    await fetchApi(`/api/users/${id}`, { method: 'DELETE' });
-                    await cargarUsuarios();
-                    mostrarMensaje('Usuario eliminado.');
-                } catch (error) { mostrarError(error.message); }
-            });
-        });
-    }
-
-    // ============================================================
     // Sync Button
     // ============================================================
     btnGuardarBaseDatos.addEventListener('click', async () => {
@@ -588,7 +725,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGuardarBaseDatos.innerHTML = '🔄 Sincronizando...';
         try {
             await Promise.all([cargarInventario(), cargarCategorias()]);
-            if (rolActual === 'admin') await cargarUsuarios();
             mostrarMensaje('Lista sincronizada.');
         } catch (error) { mostrarError(error.message); }
         finally {
@@ -609,11 +745,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // Search / Filter
     // ============================================================
-    cajaBusqueda.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        tablaCuerpo.querySelectorAll('tr').forEach((fila) => {
-            fila.style.display = fila.textContent.toLowerCase().includes(query) ? '' : 'none';
-        });
+    [cajaBusqueda, filtroCategoria, filtroEstadoStock, ordenInventario].forEach((control) => {
+        control?.addEventListener('input', renderizarTablaVisual);
+        control?.addEventListener('change', renderizarTablaVisual);
     });
 
     // ============================================================
@@ -627,8 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (rolActual === 'admin') {
                 categorias = await fetchApi('/api/categories');
                 actualizarInterfazCategorias();
-                const usrs = await fetchApi('/api/users');
-                renderizarUsuarios(usrs);
             }
         } catch {
             // Silent background sync failure

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mollie Aspen - Usuarios</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Mollie Usuarios">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/9322/9322127.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="contenedor pagina-usuarios" id="seccionUsuarios">
+        <header class="encabezado-app">
+            <div class="info-logo-seccion">
+                <img class="icono-app" src="https://cdn-icons-png.flaticon.com/512/9322/9322127.png" alt="Icono Mollie">
+                <div class="titulo-app">
+                    <h1>Usuarios</h1>
+                    <p>Administración de accesos para Mollie Aspen</p>
+                </div>
+            </div>
+            <div class="herramientas-sesion">
+                <div class="rol-usuario">Rol: <span id="rolActual" class="badge-rol">-</span></div>
+                <button class="btn-menu-movil" id="btnMenuMovil" type="button" aria-label="Abrir menú">☰</button>
+                <button class="btn-theme" id="toggleTheme" title="Cambiar Tema">🌙</button>
+                <button class="btn-cerrar-sesion" id="btnCerrarSesion">Salir 🚪</button>
+            </div>
+        </header>
+
+        <div class="layout-app">
+            <div class="overlay-menu" id="overlayMenu"></div>
+            <aside class="panel-navegacion" id="panelNavegacion" aria-label="Navegación principal">
+                <div class="nav-titulo">Gestión</div>
+                <a class="nav-link" href="index.html">Inventario</a>
+                <a class="nav-link activo nav-admin" href="usuarios.html">Usuarios</a>
+            </aside>
+
+            <main class="contenido-app">
+                <section class="panel-formulario usuarios-panel">
+                    <h3 id="tituloUsuarios">👥 Usuarios</h3>
+                    <div class="campo-admin-user usuarios-form-grid">
+                        <input type="hidden" id="editUserId" value="-1">
+                        <input type="text" id="newUsername" placeholder="Usuario...">
+                        <div class="password-caja">
+                            <input type="password" id="newPassword" placeholder="Contraseña...">
+                            <button type="button" class="btn-toggle-password" data-password-target="newPassword" aria-label="Ver contraseña" title="Ver contraseña">Ver</button>
+                        </div>
+                        <select id="newRole">
+                            <option value="cajero">Cajero</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <div class="acciones-usuario-form">
+                            <button type="button" id="btnAgregarUsuario" class="btn-accion">Crear Usuario</button>
+                            <button type="button" id="btnCancelarUsuario" class="btn-secundario" hidden>Cancelar</button>
+                        </div>
+                    </div>
+                    <div class="lista-categorias-admin lista-usuarios-page" id="listaUsuarios"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="usuarios.js" defer></script>
+</body>
+</html>

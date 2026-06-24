@@ -89,8 +89,9 @@ body {
 
 @media (max-width: 768px) {
     body {
-        padding: 0;
+        padding: 10px;
         align-items: stretch;
+        background: var(--bg-card);
     }
 }
 
@@ -236,26 +237,72 @@ button, input, select, textarea {
     gap: 16px;
 }
 
+.password-caja {
+    display: flex;
+    align-items: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.password-caja:focus-within {
+    border-color: var(--border-focus);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-focus);
+}
+
+.password-caja input {
+    flex: 1;
+    min-width: 0;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.btn-toggle-password {
+    align-self: stretch;
+    border: none;
+    border-left: 1px solid var(--border);
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    min-width: 70px;
+    padding: 0 12px;
+    transition: var(--transition);
+}
+
+.btn-toggle-password:hover {
+    background: var(--primary-light);
+}
+
 /* ============================================================
    App Core Containers & Layout
    ============================================================ */
 .contenedor {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1760px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 24px;
     box-shadow: var(--shadow-md);
-    padding: 32px;
+    padding: 28px;
     display: none;
     animation: fade-in 0.3s ease;
     margin: 0 auto;
 }
 
+.pagina-usuarios {
+    display: block;
+}
+
 @media (max-width: 768px) {
     .contenedor {
         min-height: 100vh;
-        padding: 14px;
+        padding: 14px 10px 22px;
         border: none;
         border-radius: 0;
         box-shadow: none;
@@ -275,8 +322,8 @@ button, input, select, textarea {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 24px;
-    margin-bottom: 32px;
+    padding-bottom: 22px;
+    margin-bottom: 24px;
     gap: 20px;
 }
 
@@ -343,19 +390,23 @@ button, input, select, textarea {
 
     .herramientas-sesion {
         width: 100%;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: auto auto 1fr;
         gap: 8px;
-        flex-wrap: wrap;
     }
 
     .rol-usuario {
-        flex: 1 1 100%;
+        grid-column: 1 / -1;
         font-size: 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 9px 10px;
     }
 
     .btn-cerrar-sesion {
-        flex: 1;
         min-height: 42px;
+        width: 100%;
     }
 
     .btn-theme {
@@ -450,32 +501,218 @@ button, input, select, textarea {
     border-color: rgba(239, 68, 68, 0.2);
 }
 
-/* ============================================================
-   Top Grid Layout & Form Cards
-   ============================================================ */
-.seccion-gestion-superior {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    gap: 24px;
-    margin-bottom: 32px;
+.btn-menu-movil {
+    display: none;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 800;
+    height: 40px;
+    width: 44px;
+    transition: var(--transition);
 }
 
-@media (max-width: 1024px) {
-    .seccion-gestion-superior {
+.btn-menu-movil:hover {
+    border-color: var(--border-focus);
+    background: var(--primary-light);
+}
+
+.layout-app {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+.panel-navegacion {
+    position: sticky;
+    top: 18px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-titulo {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 4px 6px 8px;
+    text-transform: uppercase;
+}
+
+.nav-link {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--text-main);
+    cursor: pointer;
+    display: flex;
+    font-size: 13px;
+    font-weight: 800;
+    justify-content: flex-start;
+    padding: 11px 12px;
+    text-align: left;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.nav-link:hover,
+.nav-link.activo {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.contenido-app {
+    min-width: 0;
+}
+
+.contenido-app > .vista-app.activa {
+    min-width: 0;
+}
+
+.vista-app[data-panel-vista="inventario"].activa {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.inventario-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    align-items: start;
+}
+
+.panel-categorias-lateral {
+    position: sticky;
+    top: 18px;
+}
+
+.vista-app {
+    display: none;
+}
+
+.vista-app.activa {
+    display: block;
+}
+
+.panel-formulario.vista-app.activa {
+    display: flex;
+}
+
+.overlay-menu {
+    display: none;
+}
+
+@media (max-width: 1280px) {
+    .contenedor {
+        padding: 24px;
+    }
+
+    .layout-app {
+        grid-template-columns: 170px minmax(0, 1fr);
+        gap: 20px;
+    }
+
+    .grid-campos {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    }
+
+    .inventario-form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .panel-categorias-lateral {
+        position: static;
+    }
+
+    .barra-herramientas {
+        grid-template-columns: 1fr;
+    }
+
+    .herramientas-derecha {
+        justify-content: flex-end;
+    }
+}
+
+@media (min-width: 1281px) {
+    .vista-app[data-panel-vista="inventario"] > .panel-formulario {
+        margin-bottom: 0;
     }
 }
 
 @media (max-width: 768px) {
-    .seccion-gestion-superior {
-        gap: 14px;
-        margin-bottom: 18px;
+    .btn-menu-movil {
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
+    .layout-app {
+        display: block;
+    }
+
+    .inventario-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-navegacion {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 1000;
+        width: min(82vw, 300px);
+        border-radius: 0 18px 18px 0;
+        border-left: none;
+        padding: 18px 14px;
+        transform: translateX(-105%);
+        transition: transform 0.25s ease;
+    }
+
+    .menu-abierto .panel-navegacion {
+        transform: translateX(0);
+    }
+
+    .overlay-menu {
+        background: rgba(15, 23, 42, 0.45);
+        display: block;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        position: fixed;
+        transition: opacity 0.25s ease;
+        z-index: 999;
+    }
+
+    .menu-abierto .overlay-menu {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .nav-link {
+        min-height: 46px;
+        font-size: 14px;
+    }
+}
+
+/* ============================================================
+   Top Grid Layout & Form Cards
+   ============================================================ */
+@media (max-width: 768px) {
     .panel-formulario {
-        padding: 16px;
+        padding: 18px 14px;
         border-radius: 14px;
-        gap: 14px;
+        gap: 16px;
     }
 
     .panel-formulario h3 {
@@ -485,19 +722,25 @@ button, input, select, textarea {
 
     .grid-campos {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 14px;
+    }
+}
+
+@media (min-width: 520px) and (max-width: 768px) {
+    .grid-campos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 .panel-formulario {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 24px;
+    border-radius: 16px;
+    padding: 22px;
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
 }
 
 .panel-formulario h3 {
@@ -510,8 +753,32 @@ button, input, select, textarea {
 
 .grid-campos {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+}
+
+@media (max-width: 768px) {
+    .panel-formulario {
+        padding: 18px 14px;
+        border-radius: 14px;
+        gap: 16px;
+    }
+
+    .panel-formulario h3 {
+        font-size: 14px;
+        line-height: 1.3;
+    }
+
+    .grid-campos {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}
+
+@media (min-width: 520px) and (max-width: 768px) {
+    .grid-campos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .campo {
@@ -545,7 +812,9 @@ button, input, select, textarea {
     .campo-admin-user input,
     .campo-admin-user select,
     .campo-fila-add input,
-    .buscador-caja input {
+    .buscador-caja input,
+    .control-filtro,
+    .btn-toggle-password {
         min-height: 44px;
         font-size: 16px;
     }
@@ -598,6 +867,67 @@ button, input, select, textarea {
     font-weight: 500;
 }
 
+.zona-pegar-imagen input[type="file"] {
+    display: none;
+}
+
+.btn-subir-imagen {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 10px;
+    padding: 9px 12px;
+    transition: var(--transition);
+}
+
+.btn-subir-imagen:hover {
+    background: var(--primary-light);
+    border-color: var(--border-focus);
+}
+
+.anexo-upload {
+    align-items: center;
+    background: var(--bg-input);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 10px;
+    transition: var(--transition);
+}
+
+.anexo-upload:hover,
+.anexo-upload:focus-within {
+    background: var(--primary-light);
+    border-color: var(--border-focus);
+}
+
+.anexo-upload span {
+    color: var(--text-muted);
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.anexo-upload input[type="file"] {
+    display: none;
+}
+
+.anexo-upload .btn-subir-imagen {
+    flex: 0 0 auto;
+    margin-top: 0;
+    white-space: nowrap;
+}
+
 .miniatura-pegar {
     max-height: 50px;
     margin-top: 8px;
@@ -605,6 +935,44 @@ button, input, select, textarea {
     object-fit: contain;
     border: 1px solid var(--border);
     display: none;
+}
+
+@media (max-width: 768px) {
+    .zona-pegar-imagen {
+        min-height: 112px;
+        padding: 14px;
+    }
+
+    .zona-pegar-imagen span {
+        font-size: 12px;
+    }
+
+    .btn-subir-imagen {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        min-height: 44px;
+        width: 100%;
+    }
+
+    .miniatura-pegar {
+        max-height: 76px;
+    }
+
+    .anexo-upload {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .anexo-upload span {
+        white-space: normal;
+    }
+
+    .usuarios-form-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Admin sidecontrols wrapper */
@@ -663,6 +1031,24 @@ button, input, select, textarea {
     gap: 8px;
 }
 
+.usuarios-panel {
+    max-width: 980px;
+}
+
+.usuarios-form-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr) 160px;
+    gap: 12px;
+}
+
+.usuarios-form-grid .acciones-usuario-form {
+    grid-column: 1 / -1;
+}
+
+.lista-usuarios-page {
+    max-height: 520px;
+}
+
 .campo-admin-user input, .campo-admin-user select {
     background: var(--bg-input);
     border: 1px solid var(--border);
@@ -671,6 +1057,10 @@ button, input, select, textarea {
     font-size: 13px;
     outline: none;
     transition: var(--transition);
+}
+
+.campo-admin-user .password-caja input {
+    border: none;
 }
 
 .campo-admin-user input:focus, .campo-admin-user select:focus {
@@ -704,21 +1094,21 @@ button, input, select, textarea {
 
 /* Shared Lists */
 .lista-categorias-admin {
-    max-height: 150px;
+    max-height: 420px;
     overflow-y: auto;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg-input);
-    margin-top: 12px;
+    margin-top: 4px;
 }
 
 .item-categoria-admin {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-bottom: 1px solid var(--border);
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .usuario-acciones {
@@ -771,31 +1161,38 @@ button, input, select, textarea {
    Toolbar & Search
    ============================================================ */
 .barra-herramientas {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 18px;
+    padding: 14px 16px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: 18px;
-    margin-bottom: 24px;
+    margin: 22px 0;
 }
 
 @media (max-width: 768px) {
     .barra-herramientas {
         flex-direction: column;
         align-items: stretch;
-        padding: 14px;
+        padding: 14px 12px;
         border-radius: 14px;
-        gap: 12px;
+        gap: 14px;
     }
+}
+
+.filtros-inventario {
+    display: grid;
+    grid-template-columns: minmax(300px, 1.8fr) repeat(3, minmax(160px, 0.7fr));
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
 }
 
 .buscador-caja {
     position: relative;
-    flex: 1;
-    max-width: 480px;
+    min-width: 0;
 }
 
 .buscador-caja input {
@@ -814,6 +1211,23 @@ button, input, select, textarea {
     box-shadow: var(--shadow-focus);
 }
 
+.control-filtro {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    padding: 10px 12px;
+    transition: var(--transition);
+}
+
+.control-filtro:focus {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
 .buscador-caja::before {
     content: "🔍";
     position: absolute;
@@ -828,10 +1242,15 @@ button, input, select, textarea {
 .herramientas-derecha {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 @media (max-width: 768px) {
+    .filtros-inventario {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
     .buscador-caja {
         max-width: none;
     }
@@ -857,7 +1276,7 @@ button, input, select, textarea {
     .btn-descargar-pdf,
     .btn-guardar-cambios {
         justify-content: center;
-        padding: 10px 12px;
+        padding: 10px 8px;
         font-size: 12px;
         white-space: normal;
         text-align: center;
@@ -883,7 +1302,7 @@ button, input, select, textarea {
     background: var(--bg-card);
     color: var(--text-main);
     border-radius: 10px;
-    padding: 10px 20px;
+    padding: 10px 14px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -923,7 +1342,7 @@ button, input, select, textarea {
     width: 100%;
     overflow-x: auto;
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: 16px;
     box-shadow: var(--shadow-sm);
     -webkit-overflow-scrolling: touch;
 }
@@ -932,33 +1351,110 @@ table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 13px;
+    font-size: 12.5px;
 }
 
 @media (max-width: 768px) {
     .tabla-scroll {
-        border-radius: 14px;
-        margin: 0 -2px;
+        overflow: visible;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        margin: 0;
     }
 
     table {
-        min-width: 980px;
-        font-size: 12px;
+        min-width: 0;
+        display: block;
+        width: 100%;
+        font-size: 13px;
     }
 
-    th {
-        padding: 12px 10px;
-        font-size: 9px;
+    thead {
+        display: none;
+    }
+
+    tbody {
+        display: grid;
+        gap: 12px;
+    }
+
+    tr {
+        display: grid;
+        gap: 0;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    tr:hover td {
+        background-color: var(--bg-card);
     }
 
     td {
-        padding: 12px 10px;
-        vertical-align: top;
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        overflow-wrap: anywhere;
+    }
+
+    td::before {
+        content: attr(data-label);
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td[data-label="Código"] {
+        grid-template-columns: 1fr auto;
+        background: var(--bg-input);
+        font-size: 15px;
+    }
+
+    td[data-label="Código"]::before {
+        order: 2;
+        justify-self: end;
+        background: var(--primary-light);
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 4px 8px;
+    }
+
+    td[data-label="Stock"] {
+        text-align: left !important;
+    }
+
+    td[data-label="Operaciones"] {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        background: var(--bg-input);
+    }
+
+    td[data-label="Operaciones"]::before {
+        display: none;
     }
 
     .btn-op {
-        margin-right: 4px;
-        padding: 7px 10px;
+        width: 100%;
+        margin-right: 0;
+        padding: 10px 12px;
+        background: var(--bg-card);
+    }
+
+    .btn-detalle-link {
+        font-size: 13px;
+        line-height: 1.35;
     }
 }
 
@@ -966,7 +1462,7 @@ th {
     background: var(--bg-input);
     color: var(--text-muted);
     font-weight: 700;
-    padding: 14px 16px;
+    padding: 13px 12px;
     border-bottom: 1px solid var(--border);
     text-transform: uppercase;
     font-size: 10px;
@@ -974,7 +1470,7 @@ th {
 }
 
 td {
-    padding: 16px;
+    padding: 13px 12px;
     border-bottom: 1px solid var(--border);
     color: var(--text-main);
     transition: background-color 0.2s ease;
@@ -1024,9 +1520,9 @@ tr:hover td {
 }
 
 .anexo-enlace {
-    color: var(--text-muted);
+    color: var(--primary);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 800;
     transition: var(--transition);
 }
 
@@ -1204,8 +1700,11 @@ tr:hover td {
         padding: 0 !important;
     }
     #seccionLogin,
-    .seccion-gestion-superior,
+    .panel-navegacion,
+    .overlay-menu,
+    .panel-formulario,
     .barra-herramientas,
+    .btn-menu-movil,
     .btn-theme,
     .btn-cerrar-sesion,
     .modal-background,
@@ -1218,6 +1717,14 @@ tr:hover td {
         display: block !important;
         background: transparent !important;
         border: none !important;
+    }
+    .layout-app {
+        display: block !important;
+    }
+    .contenido-app,
+    .vista-app,
+    .vista-app.activa {
+        display: block !important;
     }
     .encabezado-app {
         border-bottom: 2px solid #000 !important;
@@ -1255,5 +1762,72 @@ tr:hover td {
     }
     th:last-child, td:last-child {
         display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .tabla-scroll {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    table,
+    tr {
+        display: block;
+        width: 100%;
+    }
+
+    tbody {
+        display: grid;
+        gap: 12px;
+        width: 100%;
+    }
+
+    thead {
+        display: none;
+    }
+
+    tbody tr {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    tbody td {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 12px;
+        padding: 11px 12px;
+        text-align: left !important;
+    }
+
+    tbody td::before {
+        content: attr(data-label);
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    tbody td[data-label="Operaciones"] {
+        grid-template-columns: 1fr;
+        background: var(--bg-input);
+    }
+
+    tbody td[data-label="Operaciones"]::before {
+        display: none;
+    }
+
+    tbody .btn-op {
+        margin: 0 0 8px;
+        padding: 10px 12px;
+        width: 100%;
+    }
+
+    tbody .btn-op:last-child {
+        margin-bottom: 0;
     }
 }
