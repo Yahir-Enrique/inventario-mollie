@@ -1174,11 +1174,12 @@ button, input, select, textarea {
 
 @media (max-width: 768px) {
     .barra-herramientas {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         align-items: stretch;
-        padding: 14px 12px;
+        padding: 12px;
         border-radius: 14px;
-        gap: 14px;
+        gap: 12px;
+        margin: 16px 0;
     }
 }
 
@@ -1258,23 +1259,28 @@ button, input, select, textarea {
 
 @media (max-width: 768px) {
     .filtros-inventario {
-        grid-template-columns: 1fr;
-        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
     }
 
     .buscador-caja {
+        grid-column: 1 / -1;
         max-width: none;
+    }
+
+    .buscador-caja input {
+        padding-left: 38px;
     }
 
     .herramientas-derecha {
         align-items: stretch;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 10px;
+        width: 100%;
     }
 
     .contador-badges {
-        grid-column: 1 / -1;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1287,20 +1293,36 @@ button, input, select, textarea {
     .btn-descargar-pdf,
     .btn-guardar-cambios {
         justify-content: center;
-        padding: 10px 8px;
-        font-size: 12px;
-        white-space: normal;
+        min-height: 48px;
+        padding: 12px 14px;
+        font-size: 14px;
+        white-space: nowrap;
         text-align: center;
+        width: 100%;
     }
 
     .exportar-grupo {
         display: grid;
-        grid-template-columns: 86px 1fr;
+        grid-template-columns: minmax(96px, 0.45fr) minmax(0, 1fr);
         gap: 8px;
+        width: 100%;
     }
 
     .exportar-select {
         min-width: 0;
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 430px) {
+    .filtros-inventario,
+    .exportar-grupo {
+        grid-template-columns: 1fr;
+    }
+
+    .buscador-caja input,
+    .control-filtro {
+        font-size: 15px;
     }
 }
 
@@ -1540,6 +1562,12 @@ tr:hover td {
     color: var(--primary-hover);
 }
 
+.btn-detalle-link:disabled {
+    cursor: wait;
+    opacity: 0.65;
+    text-decoration: none;
+}
+
 .anexo-enlace {
     color: var(--primary);
     text-decoration: none;
@@ -1592,6 +1620,11 @@ tr:hover td {
 
 .btn-op:last-child {
     margin-right: 0;
+}
+
+.btn-op:disabled {
+    cursor: wait;
+    opacity: 0.65;
 }
 
 .btn-op.btn-editar {

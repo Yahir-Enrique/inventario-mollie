@@ -740,6 +740,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!producto) return;
 
         if (btnDetalle) {
+            const textoOriginal = btnDetalle.textContent;
+            btnDetalle.disabled = true;
+            btnDetalle.textContent = 'Cargando...';
             try {
                 const productoCompleto = await cargarProductoCompleto(id);
                 modalTituloProducto.textContent = `[${productoCompleto.codigo}] ${productoCompleto.marca}`;
@@ -756,6 +759,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 miModal.classList.add('activo');
             } catch (error) {
                 mostrarError(error.message);
+            } finally {
+                btnDetalle.disabled = false;
+                btnDetalle.textContent = textoOriginal;
             }
             return;
         }
@@ -774,13 +780,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (btnEditar) {
+            const textoOriginal = btnEditar.textContent;
+            btnEditar.disabled = true;
+            btnEditar.textContent = 'Cargando...';
             let productoCompleto;
             try {
                 productoCompleto = await cargarProductoCompleto(id);
             } catch (error) {
                 mostrarError(error.message);
+                btnEditar.disabled = false;
+                btnEditar.textContent = textoOriginal;
                 return;
             }
+            btnEditar.disabled = false;
+            btnEditar.textContent = textoOriginal;
             document.getElementById('insCodigo').value = productoCompleto.codigo;
             selectCategoria.value = productoCompleto.categoria;
             document.getElementById('insMarca').value = productoCompleto.marca;
