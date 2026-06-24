@@ -487,6 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (token) headers.Authorization = `Bearer ${token}`;
         const response = await fetch(url, {
             ...options,
+            cache: 'no-store',
             headers,
             body: options.body && !(options.body instanceof FormData)
                 ? JSON.stringify(options.body)
@@ -589,6 +590,10 @@ document.addEventListener('DOMContentLoaded', () => {
             baseDatosInventario = await fetchApi('/api/inventory');
             renderizarTablaVisual();
         } catch (error) { mostrarError(error.message); }
+    }
+
+    async function cargarProductoCompleto(id) {
+        return fetchApi(`/api/inventory/${id}`);
     }
 
     // ============================================================
@@ -735,18 +740,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!producto) return;
 
         if (btnDetalle) {
-            modalTituloProducto.textContent = `[${producto.codigo}] ${producto.marca}`;
-            modalImgProducto.src = producto.imagen || '';
-            modalImgProducto.style.display = producto.imagen ? 'block' : 'none';
-            modalTextoDetalle.innerHTML = `
-                <strong>Detalle:</strong> ${producto.detalle}<br><br>
-                <strong>Categoría:</strong> ${producto.categoria}<br>
-                <strong>Contenido:</strong> ${producto.contenido}<br>
-                <strong>Unidad:</strong> ${producto.medida}<br>
-                <strong>Etiqueta:</strong> ${producto.etiqueta}<br>
-                <strong>Anexo:</strong> ${renderizarAnexo(producto.anexo)}
-            `;
-            miModal.classList.add('activo');
+            try {
+                const productoCompleto = await cargarProductoCompleto(id);
+                modalTituloProducto.textContent = `[${productoCompleto.codigo}] ${productoCompleto.marca}`;
+                modalImgProducto.src = productoCompleto.imagen || '';
+                modalImgProducto.style.display = productoCompleto.imagen ? 'block' : 'none';
+                modalTextoDetalle.innerHTML = `
+                    <strong>Detalle:</strong> ${productoCompleto.detalle}<br><br>
+                    <strong>Categoría:</strong> ${productoCompleto.categoria}<br>
+                    <strong>Contenido:</strong> ${productoCompleto.contenido}<br>
+                    <strong>Unidad:</strong> ${productoCompleto.medida}<br>
+                    <strong>Etiqueta:</strong> ${productoCompleto.etiqueta}<br>
+                    <strong>Anexo:</strong> ${renderizarAnexo(productoCompleto.anexo)}
+                `;
+                miModal.classList.add('activo');
+            } catch (error) {
+                mostrarError(error.message);
+            }
             return;
         }
 
@@ -764,25 +774,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (btnEditar) {
-            document.getElementById('insCodigo').value = producto.codigo;
-            selectCategoria.value = producto.categoria;
-            document.getElementById('insMarca').value = producto.marca;
-            document.getElementById('insDetalle').value = producto.detalle;
-            document.getElementById('insEtiqueta').value = producto.etiqueta;
-            anexoGuardado = producto.anexo || '';
+            let productoCompleto;
+            try {
+                productoCompleto = await cargarProductoCompleto(id);
+            } catch (error) {
+                mostrarError(error.message);
+                return;
+            }
+            document.getElementById('insCodigo').value = productoCompleto.codigo;
+            selectCategoria.value = productoCompleto.categoria;
+            document.getElementById('insMarca').value = productoCompleto.marca;
+            document.getElementById('insDetalle').value = productoCompleto.detalle;
+            document.getElementById('insEtiqueta').value = productoCompleto.etiqueta;
+            anexoGuardado = productoCompleto.anexo || '';
             if (insAnexo) insAnexo.value = anexoGuardado;
             if (inputAnexoProducto) inputAnexoProducto.value = '';
-            if (textoAnexo) textoAnexo.textContent = nombreAnexo(producto.anexo) || 'PDF, documento o imagen';
-            document.getElementById('insContenido').value = producto.contenido;
-            document.getElementById('insMedida').value = producto.medida;
-            document.getElementById('insStock').value = producto.stock;
-            imagenBase64Guardada = producto.imagen;
+            if (textoAnexo) textoAnexo.textContent = nombreAnexo(productoCompleto.anexo) || 'PDF, documento o imagen';
+            document.getElementById('insContenido').value = productoCompleto.contenido;
+            document.getElementById('insMedida').value = productoCompleto.medida;
+            document.getElementById('insStock').value = productoCompleto.stock;
+            imagenBase64Guardada = productoCompleto.imagen;
             if (inputImagenProducto) inputImagenProducto.value = '';
-            previsualizacionPegada.src = producto.imagen || '';
-            previsualizacionPegada.style.display = producto.imagen ? 'block' : 'none';
-            textoPegar.textContent = producto.imagen ? 'Imagen cargada' : 'Sube una imagen o pega con Ctrl+V';
-            editIndex.value = producto.id;
-            tituloFormulario.textContent = `✏️ Editando: ${producto.codigo}`;
+            previsualizacionPegada.src = productoCompleto.imagen || '';
+            previsualizacionPegada.style.display = productoCompleto.imagen ? 'block' : 'none';
+            textoPegar.textContent = productoCompleto.imagen ? 'Imagen cargada' : 'Sube una imagen o pega con Ctrl+V';
+            editIndex.value = productoCompleto.id;
+            tituloFormulario.textContent = `✏️ Editando: ${productoCompleto.codigo}`;
             btnSubmitForm.textContent = 'Guardar Cambios';
             formulario.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -889,8 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // Auto-sync every 15 seconds (background, silent)
     // ============================================================
+    let sincronizacionEnCurso = false;
     setInterval(async () => {
-        if (!usuarioActual) return;
+        if (!usuarioActual || sincronizacionEnCurso) return;
+        sincronizacionEnCurso = true;
         try {
             baseDatosInventario = await fetchApi('/api/inventory');
             renderizarTablaVisual();
@@ -900,6 +919,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch {
             // Silent background sync failure
+        } finally {
+            sincronizacionEnCurso = false;
         }
     }, 15000);
 

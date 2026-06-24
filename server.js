@@ -27,7 +27,7 @@ const isPostgres = !!DATABASE_URL;
 
 let dbInstance;
 function queryPostgres(sql, params, callback) {
-  const queryPromise = dbInstance(sql, params).then((result) => {
+  const queryPromise = dbInstance.query(sql, params).then((result) => {
     if (Array.isArray(result)) {
       return {
         rows: result,
@@ -175,8 +175,19 @@ if (isPostgres) {
 app.use(express.json({ limit: '25mb' }));
 app.use(express.static(STATIC_DIR, {
   index: false,
-  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0
+  maxAge: 0,
+  etag: false,
+  lastModified: false
 }));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  }
+  next();
+});
 
 let dbReady;
 
@@ -514,9 +525,33 @@ app.delete('/api/categories/:id', authenticate, requireAdmin, (req, res) => {
 // Inventory
 // ============================================================
 app.get('/api/inventory', authenticate, (req, res) => {
-  db.all('SELECT * FROM inventory ORDER BY id DESC', (err, rows) => {
+  db.all(`
+    SELECT
+      id,
+      codigo,
+      categoria,
+      marca,
+      detalle,
+      CASE WHEN imagen IS NOT NULL AND imagen <> '' THEN '__HAS_IMAGE__' ELSE '' END AS imagen,
+      etiqueta,
+      '' AS anexo,
+      contenido,
+      medida,
+      stock
+    FROM inventory
+    ORDER BY id DESC
+  `, (err, rows) => {
     if (err) return res.status(500).json({ error: 'Error cargando inventario' });
     res.json(rows);
+  });
+});
+
+app.get('/api/inventory/:id', authenticate, (req, res) => {
+  const itemId = Number(req.params.id);
+  db.get('SELECT * FROM inventory WHERE id = ?', [itemId], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Error cargando producto' });
+    if (!row) return res.status(404).json({ error: 'Producto no encontrado' });
+    res.json(row);
   });
 });
 
