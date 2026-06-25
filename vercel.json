@@ -14,6 +14,14 @@
       "use": "@vercel/static"
     },
     {
+      "src": "usuarios.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "usuarios.js",
+      "use": "@vercel/static"
+    },
+    {
       "src": "server.js",
       "use": "@vercel/node"
     }
@@ -30,6 +38,14 @@
     {
       "src": "^/index\\.js$",
       "dest": "/index.js"
+    },
+    {
+      "src": "^/usuarios\\.html$",
+      "dest": "/usuarios.html"
+    },
+    {
+      "src": "^/usuarios\\.js$",
+      "dest": "/usuarios.js"
     },
     {
       "src": "^/api/(.*)$",
